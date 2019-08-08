@@ -1,0 +1,6 @@
+.vscode
+patient
+pe
+result
+__pycache__
+*.pyc
