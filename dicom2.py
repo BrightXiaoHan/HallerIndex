@@ -15,7 +15,7 @@ from scipy.interpolate import splev, splprep
 
 # %%
 # 读取dicom文件
-f = os.listdir("./pe")[9]
+f = os.listdir("./pe")[6]
 print(f)
 ds = pydicom.dcmread(os.path.join("pe", f))  # plan dataset
 plt.imshow(ds.pixel_array, cmap=plt.cm.bone)
@@ -26,7 +26,7 @@ plt.imshow(img, cmap=plt.cm.bone)
 # %%
 # 提取像素轮廓点
 ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
-cim2, contours, hierarchy = cv2.findContours(
+_, contours, _ = cv2.findContours(
     binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 # 将所有轮廓按轮廓点数量由大到小排序
@@ -59,10 +59,20 @@ def find_inner_contour(contours):
 
 
 inner_contours = find_inner_contour(contours)
-img_with_contours = np.copy(img)
-cv2.drawContours(img_with_contours, inner_contours, -1, (255, 255, 255), 3)
-plt.imshow(img_with_contours, cmap=plt.cm.bone)
 
+def show_contours(img, contours):
+    """在坐标轴中展示指定的轮廓
+    
+    Args:
+        img (numpy.ndarray): 原始图像
+        contours (list): 轮廓集合
+    """
+    img_with_contours = np.copy(img)
+    cv2.drawContours(img_with_contours, contours, -1, (255, 255, 255), 3)
+    plt.imshow(img_with_contours, cmap=plt.cm.bone)
+
+
+show_contours(img, inner_contours)
 # %%
 # 纠正内轮廓的方向
 
@@ -114,15 +124,23 @@ def rotate_contours(contour, matrix):
     return contour.astype(np.int)
 
 inner_contours = [rotate_contours(contour, matrix) for contour in inner_contours]
-img_with_contours = np.copy(img)
-cv2.drawContours(img_with_contours, inner_contours, -1, (255, 255, 255), 3)
-plt.imshow(img_with_contours, cmap=plt.cm.bone)
+show_contours(img, inner_contours)
 
 
 # %%
 
-img_with_contours = np.copy(img)
-cv2.drawContours(img_with_contours, contours, -1, (255, 255, 255), 3)
-plt.imshow(img_with_contours, cmap=plt.cm.bone)
+#%%
+# 提取胸骨轮廓点
+ret, binary = cv2.threshold(img, 5, 255, cv2.THRESH_BINARY)
+_, rib_contours, _ = cv2.findContours(
+    binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+rib_contours = sorted(rib_contours, key=lambda x: len(x))
+
+# 轮廓最大的事脊椎骨的轮廓
+sternum_contours = rib_contours[-1:]
+
+# 找出胸骨的位置
+
+show_contours(img, sternum_contours)
 
 #%%
