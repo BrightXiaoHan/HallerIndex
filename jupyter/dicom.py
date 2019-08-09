@@ -14,9 +14,10 @@ from scipy.interpolate import splev, splprep
 
 # %%
 # 读取dicom文件
-f = os.listdir("./pe")[6]
+folder = "data/pe"
+f = os.listdir(folder)[6]
 print(f)
-ds = pydicom.dcmread(os.path.join("pe", f))  # plan dataset
+ds = pydicom.dcmread(os.path.join(folder, f))  # plan dataset
 plt.imshow(ds.pixel_array, cmap=plt.cm.bone)
 img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
 plt.imshow(img, cmap=plt.cm.bone)

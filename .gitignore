@@ -1,6 +1,4 @@
 .vscode
-patient
-pe
-result
+data/
 __pycache__
 *.pyc

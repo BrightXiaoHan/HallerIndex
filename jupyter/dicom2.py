@@ -9,15 +9,13 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.decomposition import PCA
-from scipy.optimize import leastsq
-from scipy.interpolate import splev, splprep
 
 # %%
 # 读取dicom文件
-f = os.listdir("./pe")[6]
+folder = 'data/pe'
+f = os.listdir(folder)[9]
 print(f)
-ds = pydicom.dcmread(os.path.join("pe", f))  # plan dataset
+ds = pydicom.dcmread(os.path.join(folder, f))  # plan dataset
 plt.imshow(ds.pixel_array, cmap=plt.cm.bone)
 img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
 plt.imshow(img, cmap=plt.cm.bone)
@@ -60,9 +58,10 @@ def find_inner_contour(contours):
 
 inner_contours = find_inner_contour(contours)
 
+
 def show_contours(img, contours):
     """在坐标轴中展示指定的轮廓
-    
+
     Args:
         img (numpy.ndarray): 原始图像
         contours (list): 轮廓集合
@@ -109,9 +108,11 @@ img = cv2.warpAffine(img, matrix, (img.shape[0], img.shape[1]))
 plt.imshow(img, cmap=plt.cm.bone)
 
 # 旋转轮廓点
+
+
 def rotate_contours(contour, matrix):
     """旋转轮廓点坐标
-    
+
     Args:
         contour (numpy.ndarray): shape of (n, 1, 2)
         matrix (numpy.ndarray): shape of (2, 3)
@@ -123,24 +124,55 @@ def rotate_contours(contour, matrix):
     contour = np.expand_dims(contour.transpose(1, 0), 1)
     return contour.astype(np.int)
 
-inner_contours = [rotate_contours(contour, matrix) for contour in inner_contours]
+
+inner_contours = [rotate_contours(contour, matrix)
+                  for contour in inner_contours]
 show_contours(img, inner_contours)
 
 
 # %%
 
-#%%
+# %%
 # 提取胸骨轮廓点
 ret, binary = cv2.threshold(img, 5, 255, cv2.THRESH_BINARY)
 _, rib_contours, _ = cv2.findContours(
     binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 rib_contours = sorted(rib_contours, key=lambda x: len(x))
 
+
 # 轮廓最大的事脊椎骨的轮廓
-sternum_contours = rib_contours[-1:]
+sternum_contour = rib_contours[-1]
+
+# 找出脊椎骨轮廓的最内点, 最左侧点，和最右侧点
+top_sternum_point_index = np.argmin(sternum_contour[:, 0, 1])
+top_sternum_point = sternum_contour[top_sternum_point_index, 0]
+
+left_sternum_point_index = np.argmin(sternum_contour[:, 0, 0])
+left_sternum_point = sternum_contour[left_sternum_point_index, 0]
+
+right_sternum_point_index = np.argmax(sternum_contour[:, 0, 0])
+right_sternum_point = sternum_contour[right_sternum_point_index, 0]
 
 # 找出胸骨的位置
+vertebra_contours = []
+for contour in rib_contours[:-1]:
+    x = contour[:, 0, 0]
+    y = contour[:, 0, 1]
+    if np.sum(np.logical_and(x < right_sternum_point[0], x > left_sternum_point[0])) > 0 and np.sum(y < top_sternum_point[0]) >= 0:
+        vertebra_contours.append(contour)
 
-show_contours(img, sternum_contours)
+if len(vertebra_contours) == 0:
+    raise Exception("Vertebra is not found in this diagram.")
+
+vertebra_contour = vertebra_contours[-1]
+bottom_vertebra_point_index = np.argmax(vertebra_contour[:, 0, 1])
+bottom_vertebra_point = vertebra_contour[bottom_vertebra_point_index, 0]
+
+show_contours(img, [sternum_contour, vertebra_contour])
+# %%
+all_useful_contours = []
+all_useful_contours.extend(inner_contours)
+all_useful_contours.extend([sternum_contour, vertebra_contour])
+show_contours(img, all_useful_contours)
 
 #%%

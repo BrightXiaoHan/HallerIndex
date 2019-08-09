@@ -1,3 +1,10 @@
+'''
+@Description: In User Settings Edit
+@Author: your name
+@Date: 2019-08-09 10:43:53
+@LastEditTime: 2019-08-09 10:43:53
+@LastEditors: your name
+'''
 import os
 import re
 import pydicom
@@ -185,10 +192,4 @@ def diagnosis(dicom_file, saved_path=None):
 
     return H1, H2
 
-def main():
-    f = os.listdir("./pe")[6]
-    diagnosis(os.path.join("pe", f), "example.jpg")
-
-if __name__ == "__main__":
-    main()
 
