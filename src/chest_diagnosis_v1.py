@@ -1,10 +1,3 @@
-'''
-@Description: In User Settings Edit
-@Author: your name
-@Date: 2019-08-09 10:43:53
-@LastEditTime: 2019-08-09 10:43:53
-@LastEditors: your name
-'''
 import os
 import re
 import pydicom
@@ -16,6 +9,9 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from scipy.optimize import leastsq
 from scipy.interpolate import splev, splprep
+from PIL import Image
+
+from src.utils import fig2img
 
 
 def sort_clockwise(x, y):
@@ -139,57 +135,57 @@ def diagnosis(dicom_file, saved_path=None):
     H1 = d / abs(A[1])
     H2 = 2 * e / d * np.sign(abs(B[0] - C[0]) - d/2)
 
+    fig = plt.figure(figsize=(16, 6))
+    # -------------------------------------------- #
+    # 此处画第一张子图                                #
+    # -------------------------------------------- #
+    plt.subplot(121)
+    plt.imshow(img)
+
+    # -------------------------------------------- #
+    # 此处画第二张子图                                #
+    # -------------------------------------------- #
+    plt.subplot(122)
+    # 画出拟合曲线和原始点集
+    # 画胸廓拟合点集
+    plt.axis('equal')
+    plt.plot(np.concatenate([flatten_x_pos, flatten_x_neg]), np.concatenate(
+        [flatten_y_pos, flatten_y_neg]), color="orange", label="Fitted Curve", linewidth=2)
+
+    # 画椭圆以及椭圆内径
+    oval_long_axis_x = np.linspace(-a, a, 1000)
+    oval_long_axis_y = np.zeros((1000,))
+    oval_short_axis_x = np.zeros((500,))
+    oval_short_axis_y = np.linspace(-b, b, 500)
+    # 画椭圆
+    plt.plot(np.concatenate([fit_x, fit_x]), np.concatenate(
+        [fit_y, -fit_y]), color="blue", label="Fitted oval", linewidth=2)
+    # 画长轴
+    plt.plot(oval_long_axis_x, oval_long_axis_y, color="yellow", label="d=%d pixels" % (2*a), linewidth=2)
+    # 画短轴
+    plt.plot(oval_short_axis_x, oval_short_axis_y,
+                color="blue", linewidth=2)
+
+    # 画A， B
+    plt.plot(*zip(*[A, B]), color="magenta", label="AB=%d pixels" % (A[1] - B[1]).astype(int), linewidth=4)
+
+    # 画e 
+    plt.plot(*zip(*[A, _E]), color="cyan", label="e=%d pixels" % (np.abs(A[0] - _E[0])).astype(int), linewidth=4)
+    
+    plt.text(*A, "A", fontsize=24)
+    plt.text(*B, "B", fontsize=24)
+    plt.text(*C, "C", fontsize=24)
+
+    plt.text(0, -24, "H1: %f, H2: %f" % (H1, H2), fontsize=10)
+
+    plt.legend()
+    
+    figure_image = fig2img(fig)
+
     # 如果需要绘制相应的分析图像，输出到指定文件
     if saved_path is not None:
-
-        plt.figure(figsize=(16, 6))
-        # -------------------------------------------- #
-        # 此处画第一张子图                                #
-        # -------------------------------------------- #
-        plt.subplot(121)
-        plt.imshow(img)
-
-        # -------------------------------------------- #
-        # 此处画第二张子图                                #
-        # -------------------------------------------- #
-        plt.subplot(122)
-        # 画出拟合曲线和原始点集
-        # 画胸廓拟合点集
-        plt.axis('equal')
-        plt.plot(np.concatenate([flatten_x_pos, flatten_x_neg]), np.concatenate(
-            [flatten_y_pos, flatten_y_neg]), color="orange", label="Fitted Curve", linewidth=2)
-
-        # 画椭圆以及椭圆内径
-        oval_long_axis_x = np.linspace(-a, a, 1000)
-        oval_long_axis_y = np.zeros((1000,))
-        oval_short_axis_x = np.zeros((500,))
-        oval_short_axis_y = np.linspace(-b, b, 500)
-        # 画椭圆
-        plt.plot(np.concatenate([fit_x, fit_x]), np.concatenate(
-            [fit_y, -fit_y]), color="blue", label="Fitted oval", linewidth=2)
-        # 画长轴
-        plt.plot(oval_long_axis_x, oval_long_axis_y, color="yellow", label="d=%d pixels" % (2*a), linewidth=2)
-        # 画短轴
-        plt.plot(oval_short_axis_x, oval_short_axis_y,
-                 color="blue", linewidth=2)
-
-        # 画A， B
-        plt.plot(*zip(*[A, B]), color="magenta", label="AB=%d pixels" % (A[1] - B[1]).astype(int), linewidth=4)
-
-        # 画e 
-        plt.plot(*zip(*[A, _E]), color="cyan", label="e=%d pixels" % (np.abs(A[0] - _E[0])).astype(int), linewidth=4)
-        
-        plt.text(*A, "A", fontsize=24)
-        plt.text(*B, "B", fontsize=24)
-        plt.text(*C, "C", fontsize=24)
-
-        plt.text(0, -24, "H1: %f, H2: %f" % (H1, H2), fontsize=10)
-
-        plt.legend()
-        
         plt.savefig(saved_path)
-        # plt.show()
-
-    return H1, H2
+    
+    return (H1, H2), figure_image, Image.fromarray(img)
 
 

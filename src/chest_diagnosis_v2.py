@@ -1,10 +1,3 @@
-'''
-@Description: In User Settings Edit
-@Author: your name
-@Date: 2019-08-09 10:44:01
-@LastEditTime: 2019-08-09 10:44:01
-@LastEditors: Please set LastEditors
-'''
 import os
 import re
 import pydicom
@@ -14,6 +7,8 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
+from PIL import Image
+from src.utils import fig2img
 
 def find_inner_contour(contours):
     """ 
@@ -235,46 +230,45 @@ def diagnosis(dicom_file, saved_path=None):
 
     haller_index = a / b
 
+    fig = plt.figure(figsize=(16, 6))
+    # -------------------------------------------- #
+    # 此处画第一张子图                                #
+    # -------------------------------------------- #
+    plt.subplot(121)
+    plt.imshow(img)
 
-     # 如果需要绘制相应的分析图像，输出到指定文件
+    # -------------------------------------------- #
+    # 此处画第二张子图                                #
+    # -------------------------------------------- #
+    plt.subplot(122)
+    # 画出拟合曲线和原始点集
+    # 画胸廓拟合点集
+    plt.axis('equal')
+    # 画外轮廓
+    plt.scatter(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", label="Outline", linewidth=2)
+
+    # 画内轮廓
+    plt.scatter(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", label="Innerline", linewidth=2)
+    plt.scatter(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", label="Innerline", linewidth=2)
+    
+    # 画上胸骨
+    plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", label="sternum_contour", linewidth=2)
+
+    # 画脊椎骨
+    plt.scatter(vertebra_contour[:, 0, 0], vertebra_contour[:, 0, 1], color="black", label="vertebra_contour", linewidth=2)
+    
+    # 画左右连线
+    plt.plot(*zip(*[left_chest_leftmost, right_chest_rightmost]), color="magenta", label="a", linewidth=2)
+
+    # 画e 
+    plt.plot(*zip(*[top_vertebra_point, bottom_sternum_point]), color="cyan", label="b", linewidth=2)
+
+    plt.legend()
+
+    figure_image = fig2img(fig)
+    
+    # 如果需要绘制相应的分析图像，输出到指定文件
     if saved_path is not None:
-
-        plt.figure(figsize=(16, 6))
-        # -------------------------------------------- #
-        # 此处画第一张子图                                #
-        # -------------------------------------------- #
-        plt.subplot(121)
-        plt.imshow(img)
-
-        # -------------------------------------------- #
-        # 此处画第二张子图                                #
-        # -------------------------------------------- #
-        plt.subplot(122)
-        # 画出拟合曲线和原始点集
-        # 画胸廓拟合点集
-        plt.axis('equal')
-        # 画外轮廓
-        plt.scatter(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", label="Outline", linewidth=2)
-
-        # 画内轮廓
-        plt.scatter(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", label="Innerline", linewidth=2)
-        plt.scatter(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", label="Innerline", linewidth=2)
-        
-        # 画上胸骨
-        plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", label="sternum_contour", linewidth=2)
-
-        # 画脊椎骨
-        plt.scatter(vertebra_contour[:, 0, 0], vertebra_contour[:, 0, 1], color="black", label="vertebra_contour", linewidth=2)
-        
-        # 画左右连线
-        plt.plot(*zip(*[left_chest_leftmost, right_chest_rightmost]), color="magenta", label="a", linewidth=2)
-
-        # 画e 
-        plt.plot(*zip(*[top_vertebra_point, bottom_sternum_point]), color="cyan", label="b", linewidth=2)
-
-        plt.legend()
-        
         plt.savefig(saved_path)
-        
-
-    return haller_index
+    
+    return haller_index, figure_image, Image.fromarray(img)
