@@ -5,6 +5,7 @@ import cv2
 
 import numpy as np
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 
 from sklearn.decomposition import PCA
 from scipy.optimize import leastsq
@@ -186,6 +187,6 @@ def diagnosis(dicom_file, saved_path=None):
     if saved_path is not None:
         plt.savefig(saved_path)
     
-    return (H1, H2), figure_image, Image.fromarray(img)
+    return (H1, H2), figure_image
 
 

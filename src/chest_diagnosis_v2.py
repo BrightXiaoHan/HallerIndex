@@ -6,6 +6,7 @@ import math
 
 import numpy as np
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 
 from PIL import Image
 from src.utils import fig2img
@@ -271,4 +272,4 @@ def diagnosis(dicom_file, saved_path=None):
     if saved_path is not None:
         plt.savefig(saved_path)
     
-    return haller_index, figure_image, Image.fromarray(img)
+    return haller_index, figure_image
