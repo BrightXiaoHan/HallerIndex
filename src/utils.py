@@ -1,5 +1,7 @@
 import numpy
+import base64
 from PIL import Image
+from io import BytesIO
  
 def fig2data ( fig ):
     """
@@ -32,3 +34,10 @@ def fig2img(fig):
     buf = fig2data(fig)
     w, h, d = buf.shape
     return Image.frombytes("RGBA", (w, h), buf.tostring())
+
+def image_to_base64(img):
+
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue())
+    return img_str
