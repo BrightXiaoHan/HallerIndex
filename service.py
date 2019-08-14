@@ -1,9 +1,12 @@
 import io
+import os
 import tornado
 import json
 from tornado.web import RequestHandler, Application
 from src import diagnosis_v1, diagnosis_v2
 from src.utils import image_to_base64
+
+here = os.path.dirname(__file__)
 
 class _BaseDiagnosisiHandler(RequestHandler):
 
@@ -57,11 +60,21 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
         }
         return data, figure
 
+class IndexHandler(RequestHandler):
+
+    def get(self):
+        msg = "胸部指数自动诊断"
+        self.render(os.path.join(here, "index.html"), info=msg)
+
 
 if __name__ == "__main__":
     application = Application([
-        (r"/yuyi/api/chest/v1", DiagnosisHandlerV1),
-        (r"/yuyi/api/chest/v2", DiagnosisHandlerV2)
-    ])
+            (r"/yuyi/api/chest/v1", DiagnosisHandlerV1),
+            (r"/yuyi/api/chest/v2", DiagnosisHandlerV2),
+            (r"/yuyi/api/chest/index.html", IndexHandler)
+        ],
+        template_path=os.path.join(here, "static"),
+        static_path=os.path.join(here, "static"),
+    )
     application.listen(10001)
     tornado.ioloop.IOLoop.instance().start()
