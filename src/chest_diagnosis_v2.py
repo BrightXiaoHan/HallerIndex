@@ -320,7 +320,7 @@ def diagnosis(dicom_file, saved_path=None):
     # 画e 
     plt.plot(*zip(*[top_vertebra_point, bottom_sternum_point]), color="cyan", linewidth=2)
 
-    plt.text(out_contour_top[0], out_contour_top[1] - 24, "Width:%f, Hight:%f, Haller: %f." % (a, b, haller_index), fontsize=10)
+    plt.text(out_contour_top[0], out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10)
 
     plt.legend()
 
