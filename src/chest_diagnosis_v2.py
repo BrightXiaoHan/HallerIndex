@@ -124,6 +124,26 @@ def filter_contour_points(contour,  x_min=float('-inf'), x_max=float('inf'), y_m
 
     return contour[mask]
 
+def filter_contour_out_of_box(contour, contours):
+    """保留所有点都在 "contour"轮廓指定范围内的轮廓
+    
+    Args:
+        contour (numpy.ndarray): 目标轮廓，所有的点必须在这个轮廓里
+        contours (numpy.ndarray): 需要过滤的轮廓集合
+    """
+    result = []
+
+    for c in contours:
+        flag = True
+        for p in c:
+            if not cv2.pointPolygonTest(contour, p, False):
+                flag = False
+                break
+        if flag:
+            result.append(c)
+    
+    return result
+
 
 def rotate_contours(contour, matrix):
     """旋转轮廓点坐标
@@ -160,7 +180,14 @@ def diagnosis(dicom_file, saved_path=None):
     # 将所有轮廓按轮廓点数量由大到小排序
     contours = sorted(contours, key=lambda x: len(x))
 
+    # 找到胸外轮廓
     out_contour = contours[-1]
+
+    # 找到外胸轮廓的最高点和最低点
+    out_contour_bottom = find_boundary_point(out_contour, "bottom")
+    out_contour_top = find_boundary_point(out_contour, "top")
+
+    # 找到内胸腔轮廓
     inner_contours = find_inner_contour(contours)
 
     # 找到左右胸轮廓的两个最低点，lowest_1是左侧，lowest_2是右侧
@@ -213,8 +240,8 @@ def diagnosis(dicom_file, saved_path=None):
     demarcation_point = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
 
     # 以此分界点为接线，将胸骨分为上下两个部分
-    top_rib_contours = filter_contours(rib_contours, y_max=demarcation_point, mode="all")
-    bottom_rib_contours = filter_contours(rib_contours, y_min=demarcation_point, mode="all")
+    top_rib_contours = filter_contours(rib_contours, y_max=demarcation_point, y_min=out_contour_top[1], mode="all")
+    bottom_rib_contours = filter_contours(rib_contours, y_min=demarcation_point, y_max=out_contour_bottom[1], mode="all")
 
     if len(top_rib_contours) == 0 or len(bottom_rib_contours) == 0:
         raise SternumVertebraNotFoundException("请检查您的图像是否符合要求，自动检测无法找找到胸骨。")
