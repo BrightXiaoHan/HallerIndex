@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 
 from PIL import Image
+from scipy.interpolate import splev, splprep
 from src.utils import fig2img
 
 def find_inner_contour(contours):
@@ -159,6 +160,32 @@ def rotate_contours(contour, matrix):
     contour = np.expand_dims(contour.transpose(1, 0), 1)
     return contour.astype(np.int)
 
+def sort_clockwise(contour):
+    """
+    将轮廓坐标点逆时针排序
+
+    Args:
+        contour(np.ndarray): with shape (n, 1, 2)
+    Return:
+        np.ndarray: with shape (n, 1, 2)
+    """
+    # 计算轮廓的中心
+    M=cv2.moments(contour) 
+    cx=int(M['m10']/M['m00'])
+    cy=int(M['m01']/M['m00'])
+
+    x = contour[:, 0, 0]
+    y = contour[:, 0, 1]
+
+    plural = (x - cx) + (y - cy) * 1j
+
+    angle = np.angle(plural)
+
+    sort_keys = np.argsort(angle)
+
+    result = np.expand_dims(np.stack([x[sort_keys], y[sort_keys]], 1), 1)
+
+    return result, (cx, cy)
 
 class SternumVertebraNotFoundException(Exception):
     """无法找到脊椎骨或胸骨的错误
@@ -181,7 +208,7 @@ def diagnosis(dicom_file, saved_path=None):
     contours = sorted(contours, key=lambda x: len(x))
 
     # 找到胸外轮廓
-    out_contour = contours[-1]
+    out_contour, _ = sort_clockwise(contours[-1])
 
     # 找到外胸轮廓的最高点和最低点
     out_contour_bottom = find_boundary_point(out_contour, "bottom")
@@ -197,6 +224,9 @@ def diagnosis(dicom_file, saved_path=None):
     # 交换位置 1 是左胸，2 是右胸
     inner_contours[0], inner_contours[1] = (inner_contours[0], inner_contours[1]) if lowest_1[0] < lowest_2[0] else (
         inner_contours[1], inner_contours[0])
+    inner_contours[0], _ = sort_clockwise(inner_contours[0])
+    inner_contours[1], _ = sort_clockwise(inner_contours[1])
+
     lowest_1, lowest_2 = (lowest_1, lowest_2) if lowest_1[0] < lowest_2[0] else (
         lowest_2, lowest_1)
 
@@ -272,23 +302,25 @@ def diagnosis(dicom_file, saved_path=None):
     # 画胸廓拟合点集
     plt.axis('equal')
     # 画外轮廓
-    plt.scatter(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", label="Outline", linewidth=2)
+    plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=2)
 
     # 画内轮廓
-    plt.scatter(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", label="Innerline", linewidth=2)
-    plt.scatter(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", label="Innerline", linewidth=2)
+    plt.plot(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", linewidth=2)
+    plt.plot(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=2)
     
     # 画上胸骨
-    plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", label="sternum_contour", linewidth=2)
+    plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", linewidth=1)
 
     # 画脊椎骨
-    plt.scatter(vertebra_contour[:, 0, 0], vertebra_contour[:, 0, 1], color="black", label="vertebra_contour", linewidth=2)
+    plt.scatter(vertebra_contour[:, 0, 0], vertebra_contour[:, 0, 1], color="black", linewidth=1)
     
     # 画左右连线
-    plt.plot(*zip(*[left_chest_leftmost, right_chest_rightmost]), color="magenta", label="a", linewidth=2)
+    plt.plot(*zip(*[left_chest_leftmost, right_chest_rightmost]), color="magenta", linewidth=2)
 
     # 画e 
-    plt.plot(*zip(*[top_vertebra_point, bottom_sternum_point]), color="cyan", label="b", linewidth=2)
+    plt.plot(*zip(*[top_vertebra_point, bottom_sternum_point]), color="cyan", linewidth=2)
+
+    plt.text(out_contour_top[0], out_contour_top[1] - 24, "Width:%f, Hight:%f, Haller: %f." % (a, b, haller_index), fontsize=10)
 
     plt.legend()
 
