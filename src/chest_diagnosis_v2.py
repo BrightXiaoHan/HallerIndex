@@ -264,7 +264,7 @@ def diagnosis(dicom_file, saved_path=None):
         inner_contours[1], position="left")
 
     rib_contours = filter_contours(
-        rib_contours, x_min=left_chest_rightmost[0], x_max=right_chest_leftmost[0]) 
+        rib_contours, x_min=lowest_1[0], x_max=lowest_2[0], mode='all') 
 
     # 取左右最外侧点的中点为上下胸分界点
     demarcation_point = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
@@ -276,9 +276,9 @@ def diagnosis(dicom_file, saved_path=None):
     if len(top_rib_contours) == 0 or len(bottom_rib_contours) == 0:
         raise SternumVertebraNotFoundException("请检查您的图像是否符合要求，自动检测无法找找到胸骨。")
 
-    # 取上下胸骨最大的轮廓作为脊椎骨和胸骨
+    # 将上下胸骨的轮廓合并
     vertebra_contour = top_rib_contours[-1]
-    sternum_contour = bottom_rib_contours[-1]
+    sternum_contour = np.concatenate(bottom_rib_contours)
 
     # 寻找脊椎骨最上点， 和胸骨最下点
     top_vertebra_point = find_boundary_point(vertebra_contour, "bottom")
@@ -321,6 +321,9 @@ def diagnosis(dicom_file, saved_path=None):
     plt.plot(*zip(*[top_vertebra_point, bottom_sternum_point]), color="cyan", linewidth=2)
 
     plt.text(out_contour_top[0], out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10)
+
+    for c in rib_contours:
+        plt.scatter(c[:, 0, 0], c[:, 0, 1], color="yellow", linewidth=1)
 
     plt.legend()
 
