@@ -288,16 +288,9 @@ def diagnosis(dicom_file, saved_path=None):
 
     haller_index = a / b
 
-    fig = plt.figure(figsize=(16, 6))
-    # -------------------------------------------- #
-    # 此处画第一张子图                                #
-    # -------------------------------------------- #
-    plt.subplot(121)
-    plt.imshow(cv2.flip(img.copy(), 0))
-    # -------------------------------------------- #
-    # 此处画第二张子图                                #
-    # -------------------------------------------- #
-    plt.subplot(122)
+    fig = plt.figure(figsize=(8, 6))
+    plt.imshow(img * 20)
+
     # 画出拟合曲线和原始点集
     # 画胸廓拟合点集
     plt.axis('equal')
@@ -320,7 +313,7 @@ def diagnosis(dicom_file, saved_path=None):
     # 画e 
     plt.plot(*zip(*[top_vertebra_point, bottom_sternum_point]), color="cyan", linewidth=2)
 
-    plt.text(out_contour_top[0], out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10)
+    plt.text(out_contour_top[0], out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10, color="white")
 
     for c in rib_contours:
         plt.scatter(c[:, 0, 0], c[:, 0, 1], color="yellow", linewidth=1)
