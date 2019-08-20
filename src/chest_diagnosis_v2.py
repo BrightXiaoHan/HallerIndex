@@ -333,13 +333,15 @@ def diagnosis(dicom_file, saved_path=None):
 
     # 过滤左右胸的点
     inner_contours[0] = filter_contour_points(inner_contours[0], 
-                                              x_min=left_chest_near_vertebra[0], 
-                                              y_max=left_chest_near_sternum[1], 
+                                              x_min=lowest_1[0], 
+                                              y_max=left_chest_near_sternum[1],
+                                              y_min=left_chest_near_vertebra[1],
                                               mode="drop")
     # 过滤右胸的点
     inner_contours[1] = filter_contour_points(inner_contours[1], 
-                                              x_max=right_chest_near_vertebra[0], 
-                                              y_max=right_chest_near_sternum[1], 
+                                              x_max=lowest_2[0], 
+                                              y_min=right_chest_near_vertebra[1],
+                                              y_max=right_chest_near_sternum[1],
                                               mode="drop")
 
     fig = plt.figure(figsize=(8, 6))
