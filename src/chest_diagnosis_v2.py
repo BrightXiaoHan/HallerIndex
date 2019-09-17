@@ -10,6 +10,7 @@ plt.switch_backend('agg')
 
 from PIL import Image
 from scipy.interpolate import splev, splprep
+from numpy.linalg import norm
 from src.utils import fig2img
 
 def find_inner_contour(contours):
@@ -226,8 +227,52 @@ class SternumVertebraNotFoundException(Exception):
     """
     pass
 
+def depression_degree(dicom_file):
+    """判断当前胸部横切的凹陷程度
+    
+    Args:
+        dicom_file (str): 胸部横切dicom文件
+    
+    Returns:
+        float: 凹陷程度指数（以外胸廓上侧凸点与凹点的距离作为指标）
+    """
+    # 读取dicom文件中的像素数据
+    ds = pydicom.dcmread(dicom_file)
+    img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
+
+    # 提取像素轮廓点
+    ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
+    _, contours, _ = cv2.findContours(
+        binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # 将所有轮廓按轮廓点数量由大到小排序
+    contours = sorted(contours, key=lambda x: len(x))
+
+    # 找到胸外轮廓
+    out_contour, (cx, cy) = sort_clockwise(contours[-1])
+    left_top = find_boundary_point(filter_contour_points(out_contour, x_max=cx, y_max=cy), position="top")
+    right_top = find_boundary_point(filter_contour_points(out_contour, x_min=cx, y_max=cy), position="top")
+
+    mid_bottom = find_boundary_point(filter_contour_points(out_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
+
+    distance = norm(np.cross(left_top-right_top, right_top-mid_bottom))/norm(left_top-right_top)
+
+    return distance
+
 
 def diagnosis(dicom_file, saved_path=None):
+    """计算给定胸部横切照片的Haller指数
+    
+    Args:
+        dicom_file (str): 胸部横切dicom文件
+        saved_path (str, optional): 辅助线照片输出路径. Defaults to None.
+    
+    Raises:
+        SternumVertebraNotFoundException: [description]
+    
+    Returns:
+        tuple: haller_index (Haller指数), figure_image(带辅助线的照片)
+    """
 
     # 读取dicom文件中的像素数据
     ds = pydicom.dcmread(dicom_file)

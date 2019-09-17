@@ -1,5 +1,6 @@
 import os
-from src import diagnosis_v2
+import numpy as np
+from src import diagnosis_v2, depression_degree
 
 def test_chest_diagnosis_v2(dicom_test_files):
 
@@ -22,3 +23,10 @@ def test_batch(src_dest_mapping):
 			os.makedirs(os.path.dirname(target))
 
 		figure.save(target)
+
+def test_depression_degree(filtered_patient):
+	result = np.array([depression_degree(i) for i in filtered_patient])
+	index = np.argmax(result)
+	file_name = os.path.basename(filtered_patient[index])
+	assert file_name == "FILE68"
+

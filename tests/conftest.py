@@ -23,6 +23,17 @@ def dicom_test_files():
     return all_file
 
 @pytest.fixture(scope="session")
+def filtered_patient():
+    """获取手动过滤的病人ct影片
+    
+    Returns:
+        list: 文件路径列表
+    """
+    filtered_patient_folder = os.path.join(source_root, "./data/filtered_patient")
+    all_file = glob.glob(os.path.join(filtered_patient_folder, "FILE*"))
+    return all_file
+
+@pytest.fixture(scope="session")
 def src_dest_mapping():
     """
     获取测试文件 -> 输出路径的位置映射
