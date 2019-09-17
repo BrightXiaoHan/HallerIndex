@@ -163,6 +163,7 @@ def rotate_contours(contour, matrix):
     contour = np.squeeze(contour).transpose(1, 0)
     pad = np.ones((1, contour.shape[1]))
     contour = np.concatenate([contour, pad])
+    
     contour = np.dot(matrix, contour)
     contour = np.expand_dims(contour.transpose(1, 0), 1)
     return contour.astype(np.int)
@@ -351,11 +352,11 @@ def diagnosis(dicom_file, saved_path=None):
     # 画胸廓拟合点集
     plt.axis('equal')
     # 画外轮廓
-    plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=2)
+    plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=4)
 
     # 画内轮廓
-    plt.scatter(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", linewidth=2)
-    plt.scatter(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=2)
+    plt.plot(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", linewidth=4)
+    plt.plot(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=4)
 
     # 闭合内外轮廓曲线
     plt.plot([left_chest_near_vertebra[0], right_chest_near_vertebra[0]],
@@ -370,22 +371,30 @@ def diagnosis(dicom_file, saved_path=None):
             linewidth=4
     )
     
-    # 画上胸骨
-    plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", linewidth=1)
+    # # 画上胸骨
+    # plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", linewidth=1)
 
-    # 画脊椎骨
-    plt.scatter(vertebra_contour[:, 0, 0], vertebra_contour[:, 0, 1], color="black", linewidth=1)
-    
+    # # 画脊椎骨
+    # plt.scatter(vertebra_contour[:, 0, 0], vertebra_contour[:, 0, 1], color="black", linewidth=1)
+
     # 画左右连线
-    plt.plot(*zip(*[left_chest_leftmost, right_chest_rightmost]), color="magenta", linewidth=2)
+    y = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
+    xl = left_chest_leftmost[0]
+    xr = right_chest_rightmost[0]
+    
+    plt.plot([xl, xr], [y, y], color="magenta", linewidth=2)
+
+    x = (top_vertebra_point[0] + bottom_sternum_point[0]) / 2
+    yt = top_vertebra_point[1]
+    yb = bottom_sternum_point[1]
 
     # 画e 
-    plt.plot(*zip(*[top_vertebra_point, bottom_sternum_point]), color="cyan", linewidth=2)
+    plt.plot([x, x], [yt, yb], color="cyan", linewidth=2)
 
     plt.text(out_contour_top[0], out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10, color="white")
 
-    for c in rib_contours:
-        plt.scatter(c[:, 0, 0], c[:, 0, 1], color="yellow", linewidth=1)
+    # for c in rib_contours:
+    #     plt.scatter(c[:, 0, 0], c[:, 0, 1], color="yellow", linewidth=1)
 
     plt.legend()
 
