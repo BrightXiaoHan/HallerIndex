@@ -378,9 +378,9 @@ def diagnosis(dicom_file, saved_path=None):
         raise SternumVertebraNotFoundException("请检查您的图像是否符合要求，自动检测无法找找到胸骨。")
     
     # 如果没有找到上胸骨, 则使用凹陷点替代
-    if len(top_rib_contours) == 0:
-        tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 10])
-        top_rib_contours.append(np.expand_dims(np.expand_dims(tmp_points, 0), 0))
+    # if len(top_rib_contours) == 0:
+    tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 6])
+    top_rib_contours.append(np.expand_dims(np.expand_dims(tmp_points, 0), 0))
 
     # 将上下胸骨的轮廓合并
     vertebra_contour = top_rib_contours[-1]
@@ -431,17 +431,17 @@ def diagnosis(dicom_file, saved_path=None):
     plt.plot(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=4)
 
     # 闭合内外轮廓曲线
-    plt.plot([left_chest_near_vertebra[0], right_chest_near_vertebra[0]],
-            [left_chest_near_vertebra[1], right_chest_near_vertebra[1]],
-            color="black", 
-            linewidth=4
+    # plt.plot([left_chest_near_vertebra[0], right_chest_near_vertebra[0]],
+    #         [left_chest_near_vertebra[1], right_chest_near_vertebra[1]],
+    #         color="black", 
+    #         linewidth=4
     
-    )
-    plt.plot([left_chest_near_sternum[0], bottom_sternum_point[0], right_chest_near_sternum[0]],
-            [left_chest_near_sternum[1], bottom_sternum_point[1], right_chest_near_sternum[1]],
-            color="black", 
-            linewidth=4
-    )
+    # )
+    # plt.plot([left_chest_near_sternum[0], bottom_sternum_point[0], right_chest_near_sternum[0]],
+    #         [left_chest_near_sternum[1], bottom_sternum_point[1], right_chest_near_sternum[1]],
+    #         color="black", 
+    #         linewidth=4
+    # )
     
     # # 画上胸骨
     # plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", linewidth=1)
