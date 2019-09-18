@@ -257,11 +257,16 @@ def depression_degree(dicom_file):
     contours = sorted(contours, key=lambda x: len(x))
 
     # 找到胸外轮廓
-    out_contour, (cx, cy) = sort_clockwise(contours[-1])
+    out_contour, out_contour_area = max_area_contour(contours)
+    out_contour, (cx, cy) = sort_clockwise(out_contour)
+
     left_top = find_boundary_point(filter_contour_points(out_contour, x_max=cx, y_max=cy), position="top")
     right_top = find_boundary_point(filter_contour_points(out_contour, x_min=cx, y_max=cy), position="top")
 
-    mid_bottom = find_boundary_point(filter_contour_points(out_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
+    try:
+        mid_bottom = find_boundary_point(filter_contour_points(out_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
+    except ValueError:
+        return 0
 
     distance = norm(np.cross(left_top-right_top, right_top-mid_bottom))/norm(left_top-right_top)
 
