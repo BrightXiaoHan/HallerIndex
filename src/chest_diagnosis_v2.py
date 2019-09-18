@@ -13,22 +13,20 @@ from scipy.interpolate import splev, splprep
 from numpy.linalg import norm
 from src.utils import fig2img
 
-def find_inner_contour(contours):
+def find_inner_contour(contours, outline_area):
     """ 
     找到胸腔的内轮廓    
     Args:
         contours (list): 由长到短轮廓排序
+        outline_area (float): 外胸廓的面积
     """
-    # 首先取出胸腔的外轮廓
-    outline_contour = contours[-1]
-    outline_area = cv2.contourArea(outline_contour)
 
     # 存储所有符合条件的轮廓
     all_eligible_contour = []
 
-    for contour in contours[:-1]:
+    for contour in contours:
         area = cv2.contourArea(contour)
-        if area / outline_area > 0.1:
+        if area / outline_area > 0.1 and area / outline_area < 0.5:
             all_eligible_contour.append(contour)
 
     if len(all_eligible_contour) < 2:
@@ -152,6 +150,16 @@ def filter_contour_out_of_box(contour, contours):
             result.append(c)
     
     return result
+
+def max_area_contour(contours):
+    """获取轮廓集合中面积最大的轮廓
+    
+    Args:
+        contours (list): 轮廓集合
+    """
+    areas = np.array([cv2.contourArea(c) for c in contours])
+    max_index = areas.argmax()
+    return contours[max_index], areas[max_index]
 
 
 def rotate_contours(contour, matrix):
@@ -286,15 +294,22 @@ def diagnosis(dicom_file, saved_path=None):
     # 将所有轮廓按轮廓点数量由大到小排序
     contours = sorted(contours, key=lambda x: len(x))
 
-    # 找到胸外轮廓
-    out_contour, _ = sort_clockwise(contours[-1])
+    # 找到胸外轮廓(区域面积最大的为外胸廓轮廓点)
+    out_contour, out_contour_area = max_area_contour(contours)
+    out_contour, (cx, cy) = sort_clockwise(out_contour)
+
+    # 找到外胸廓突点，和外轮廓凹点
+    left_top = find_boundary_point(filter_contour_points(out_contour, x_max=cx, y_max=cy), position="top")
+    right_top = find_boundary_point(filter_contour_points(out_contour, x_min=cx, y_max=cy), position="top")
+
+    mid_bottom = find_boundary_point(filter_contour_points(out_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
 
     # 找到外胸轮廓的最高点和最低点
     out_contour_bottom = find_boundary_point(out_contour, "bottom")
     out_contour_top = find_boundary_point(out_contour, "top")
 
     # 找到内胸腔轮廓
-    inner_contours = find_inner_contour(contours)
+    inner_contours = find_inner_contour(contours, out_contour_area)
 
     # 找到左右胸轮廓的两个最低点，lowest_1是左侧，lowest_2是右侧
     lowest_1 = find_boundary_point(inner_contours[0], position="bottom")
@@ -315,11 +330,13 @@ def diagnosis(dicom_file, saved_path=None):
 
     angle = np.arctan(dy / dx) / math.pi * 180
 
+    # 旋转将胸廓ct摆正
     matrix = cv2.getRotationMatrix2D((lowest_1[0], lowest_1[1]), angle, 1.0)
     img = cv2.warpAffine(img, matrix, (img.shape[0], img.shape[1]))
 
     inner_contours = [rotate_contours(contour, matrix)
                       for contour in inner_contours]
+    out_contour = rotate_contours(out_contour, matrix)
 
     # 找到左右胸最外侧的点，计算a
     left_chest_leftmost = find_boundary_point(
@@ -352,8 +369,13 @@ def diagnosis(dicom_file, saved_path=None):
     top_rib_contours = filter_contours(rib_contours, y_max=demarcation_point, y_min=out_contour_top[1], mode="all")
     bottom_rib_contours = filter_contours(rib_contours, y_min=demarcation_point, y_max=out_contour_bottom[1], mode="all")
 
-    if len(top_rib_contours) == 0 or len(bottom_rib_contours) == 0:
+    if len(bottom_rib_contours) == 0:
         raise SternumVertebraNotFoundException("请检查您的图像是否符合要求，自动检测无法找找到胸骨。")
+    
+    # 如果没有找到上胸骨, 则使用凹陷点替代
+    if len(top_rib_contours) == 0:
+        tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 10])
+        top_rib_contours.append(np.expand_dims(np.expand_dims(tmp_points, 0), 0))
 
     # 将上下胸骨的轮廓合并
     vertebra_contour = top_rib_contours[-1]
