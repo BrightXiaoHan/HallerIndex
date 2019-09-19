@@ -6,10 +6,12 @@
 'use strict';
 
 function postData(files){
-    var formData = new FormData();
-    formData.append("files", files[0]);
+	var formData = new FormData();
+	$.each(files,function(i,file){
+		formData.append('file['+i+']', file);
+	});
     $.ajax({
-        url:'http://183.214.140.56:10001/yuyi/api/chest/v2', /*接口域名地址*/
+        url:'http://127.0.0.1:10001/yuyi/api/chest/v2', /*接口域名地址*/
         type:'post',
         data: formData,
         contentType: false,
