@@ -488,7 +488,7 @@ def diagnosis(dicom_file, saved_path=None):
     # 画e 
     plt.plot([x, x], [yt, yb], color="cyan", linewidth=2)
 
-    plt.text(out_contour_top[0], out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10, color="white")
+    plt.text(24, out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10, color="white")
 
     # for c in rib_contours:
     #     plt.scatter(c[:, 0, 0], c[:, 0, 1], color="yellow", linewidth=1)
