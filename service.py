@@ -9,7 +9,7 @@ from tornado.web import RequestHandler, Application
 from src import diagnosis_v1, diagnosis_v2, depression_degree
 from src.utils import image_to_base64
 
-here = os.path.dirname(__file__)
+here = os.path.dirname(os.path.abspath(__file__))
 
 class _BaseDiagnosisiHandler(RequestHandler):
 
