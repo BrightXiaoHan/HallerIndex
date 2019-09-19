@@ -15,13 +15,13 @@ class _BaseDiagnosisiHandler(RequestHandler):
 
     def post(self):
         ret = {'result': 'ok'}
-        files = self.request.files.get('files', None)  # 提取表单中‘name’为‘file’的文件元数据
+        files = self.request.files.values()  # 提取表单中‘name’为‘file’的文件元数据
 
         all_files_content = []
 
         for file_meta in files:
             if file_meta:
-                all_files_content.append(file_meta['body'])
+                all_files_content.append(file_meta[0]['body'])
         
         data, figure = self.on_process_file(all_files_content)
         ret["data"] = data
@@ -68,7 +68,7 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
         index = np.argmax(degrees)
         f = files[index]
 
-        reader = io.BufferedReader(io.BytesIO(file_content))
+        reader = io.BufferedReader(io.BytesIO(f))
         reader.raw.name = "tmp_name"
 
         haller, figure = diagnosis_v2(reader)
@@ -82,7 +82,7 @@ class IndexHandler(RequestHandler):
 
     def get(self):
         msg = "胸部指数自动诊断"
-        self.render(os.path.join(here, "index.html"), info=msg)
+        self.render(os.path.join(here, "static/index.html"), info=msg)
 
 
 if __name__ == "__main__":
