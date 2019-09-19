@@ -2,8 +2,11 @@ import io
 import os
 import tornado
 import json
+
+import numpy as np
+
 from tornado.web import RequestHandler, Application
-from src import diagnosis_v1, diagnosis_v2
+from src import diagnosis_v1, diagnosis_v2, depression_degree
 from src.utils import image_to_base64
 
 here = os.path.dirname(__file__)
@@ -12,14 +15,15 @@ class _BaseDiagnosisiHandler(RequestHandler):
 
     def post(self):
         ret = {'result': 'ok'}
-        file_meta = self.request.files.get('files', None)[0]  # 提取表单中‘name’为‘file’的文件元数据
+        files = self.request.files.get('files', None)  # 提取表单中‘name’为‘file’的文件元数据
 
-        if not file_meta:
-            ret['result'] = 'err'
-        else:
-            file_content = file_meta['body']
+        all_files_content = []
+
+        for file_meta in files:
+            if file_meta:
+                all_files_content.append(file_meta['body'])
         
-        data, figure = self.on_process_file(file_content)
+        data, figure = self.on_process_file(all_files_content)
         ret["data"] = data
         ret["figure"] = image_to_base64(figure).decode("ascii")
         
@@ -34,25 +38,39 @@ class _BaseDiagnosisiHandler(RequestHandler):
         raise NotImplementedError
 
 
-class DiagnosisHandlerV1(_BaseDiagnosisiHandler):
+# # v1 is Deprecation
+# class DiagnosisHandlerV1(_BaseDiagnosisiHandler):
 
-    def on_process_file(self, file_content):
-        reader = io.BufferedReader(io.BytesIO(file_content))
-        reader.raw.name = "tmp_name"
-        (h1, h2), figure = diagnosis_v1(reader)
+#     def on_process_file(self, file_content):
+#         reader = io.BufferedReader(io.BytesIO(file_content))
+#         reader.raw.name = "tmp_name"
+#         (h1, h2), figure = diagnosis_v1(reader)
 
-        data = {
-            "H1": h1,
-            "H2": h2
-        }
-        return data, figure
+#         data = {
+#             "H1": h1,
+#             "H2": h2
+#         }
+#         return data, figure
 
 
 class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
 
-    def on_process_file(self, file_content):
+    def on_process_file(self, files):
+
+        degrees = []
+
+        for file_content in files:
+            reader = io.BufferedReader(io.BytesIO(file_content))
+            reader.raw.name = "tmp_name"
+            degrees.append(depression_degree(reader))
+
+        degrees = np.array(degrees)
+        index = np.argmax(degrees)
+        f = files[index]
+
         reader = io.BufferedReader(io.BytesIO(file_content))
         reader.raw.name = "tmp_name"
+
         haller, figure = diagnosis_v2(reader)
 
         data = {
@@ -69,7 +87,6 @@ class IndexHandler(RequestHandler):
 
 if __name__ == "__main__":
     application = Application([
-            (r"/yuyi/api/chest/v1", DiagnosisHandlerV1),
             (r"/yuyi/api/chest/v2", DiagnosisHandlerV2),
             (r"/yuyi/api/chest/index.html", IndexHandler)
         ],

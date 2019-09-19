@@ -42,8 +42,7 @@ function postData(files){
 				fileName = e.target.value.split( '\\' ).pop();
 			}
 			else{
-				alert('Please select one file to upload.');
-				return;
+				fileName = this.files.length + "files selected."
 			}
 
 			if( fileName )
