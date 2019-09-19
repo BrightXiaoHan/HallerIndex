@@ -35,6 +35,19 @@ def find_inner_contour(contours, outline_area):
 
     return all_eligible_contour[-2:]
 
+def find_outer_contour(contours):
+    """找到胸腔外部轮廓（轮廓）包围面积最大的为胸腔外轮廓
+    
+    Args:
+        contours (list): 轮廓集合
+    
+    Returns:
+        np.ndarray: 胸腔外轮廓, (n, 1, 2)
+        float: 胸腔外轮廓面积
+    """
+
+    return max_area_contour(contours)
+
 
 def show_contours(img, contours):
     """在坐标轴中展示指定的轮廓
@@ -235,6 +248,18 @@ class SternumVertebraNotFoundException(Exception):
     """
     pass
 
+def is_avaliable(dicom_file):
+    """判断给定dicom文件是否是符合要求的横切照片
+    
+    Args:
+        dicom_file (str): 胸部横切dicom文件
+    
+    Returns:
+        bool: 是否符合要求。符合要求为True，反之为False
+    """
+    
+    pass
+
 def depression_degree(dicom_file):
     """判断当前胸部横切的凹陷程度
     
@@ -257,7 +282,7 @@ def depression_degree(dicom_file):
     contours = sorted(contours, key=lambda x: len(x))
 
     # 找到胸外轮廓
-    out_contour, out_contour_area = max_area_contour(contours)
+    out_contour, out_contour_area = find_outer_contour(contours)
     out_contour, (cx, cy) = sort_clockwise(out_contour)
 
     left_top = find_boundary_point(filter_contour_points(out_contour, x_max=cx, y_max=cy), position="top")
@@ -300,7 +325,7 @@ def diagnosis(dicom_file, saved_path=None):
     contours = sorted(contours, key=lambda x: len(x))
 
     # 找到胸外轮廓(区域面积最大的为外胸廓轮廓点)
-    out_contour, out_contour_area = max_area_contour(contours)
+    out_contour, out_contour_area = find_outer_contour(contours)
     out_contour, (cx, cy) = sort_clockwise(out_contour)
 
     # 找到外胸廓突点，和外轮廓凹点
