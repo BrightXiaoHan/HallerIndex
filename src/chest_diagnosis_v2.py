@@ -482,7 +482,7 @@ def diagnosis(dicom_file, saved_path=None):
     plt.plot([xl, xr], [y, y], color="magenta", linewidth=2)
 
     x = (top_vertebra_point[0] + bottom_sternum_point[0]) / 2
-    yt = top_vertebra_point[1]
+    yt = top_vertebra_point[1] + 10
     yb = bottom_sternum_point[1]
 
     # 画e 
