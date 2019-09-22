@@ -423,7 +423,7 @@ def diagnosis(dicom_file, saved_path=None):
     a = right_chest_rightmost[0] - left_chest_leftmost[0]
 
     # 提取胸骨轮廓点
-    ret, binary = cv2.threshold(img, 5, 255, cv2.THRESH_BINARY)
+    ret, binary = cv2.threshold(img, 4, 255, cv2.THRESH_BINARY)
     _, rib_contours, _ = cv2.findContours(
         binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     rib_contours = sorted(rib_contours, key=lambda x: len(x))
@@ -436,14 +436,18 @@ def diagnosis(dicom_file, saved_path=None):
         inner_contours[1], position="left")
 
     rib_contours = filter_contours(
-        rib_contours, x_min=lowest_1[0], x_max=lowest_2[0], mode='all') 
+        rib_contours, x_min=lowest_1[0], x_max=lowest_2[0], mode='exist') 
 
     # 取左右最外侧点的中点为上下胸分界点
-    demarcation_point = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
+    demarcation_point = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2 - 10  # 由于有的胸骨轮廓会超过中点线， 所以此处以重点线上方10像素为分界点
 
     # 以此分界点为接线，将胸骨分为上下两个部分
-    top_rib_contours = filter_contours(rib_contours, y_max=demarcation_point, y_min=out_contour_top[1], mode="all")
-    bottom_rib_contours = filter_contours(rib_contours, y_min=demarcation_point, y_max=out_contour_bottom[1], mode="all")
+    top_rib_contours = filter_contours(rib_contours, y_max=demarcation_point, y_min=out_contour_top[1], x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="all")
+    bottom_rib_contours = filter_contours(rib_contours, y_min=demarcation_point, y_max=out_contour_bottom[1], x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="all")
+
+    # 下胸骨选轮廓集合的top3
+    if len(bottom_rib_contours) >= 3:
+        bottom_rib_contours = bottom_rib_contours[-3:]
 
     if len(bottom_rib_contours) == 0:
         raise SternumVertebraNotFoundException("请检查您的图像是否符合要求，自动检测无法找找到胸骨。")
