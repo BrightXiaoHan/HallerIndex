@@ -26,6 +26,7 @@ all_file = list(filter(is_avaliable, all_file))
 degrees = np.array([depression_degree(i) for i in all_file])
 index = np.argmax(degrees)
 file_name = all_file[index]
+print("最凹陷的胸片文件名: %s" % file_name)
 
 # 计算Haller指数，画辅助线
 haller_index, figure = diagnosis_v2(file_name)
