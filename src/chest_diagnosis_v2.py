@@ -3,6 +3,8 @@ import re
 import pydicom
 import cv2
 import math
+import pickle
+import glob
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,7 +28,7 @@ def find_inner_contour(contours, outline_area):
 
     for contour in contours:
         area = cv2.contourArea(contour)
-        if area / outline_area > 0.1 and area / outline_area < 0.5:
+        if area / outline_area > 0.05 and area / outline_area < 0.5:
             all_eligible_contour.append(contour)
 
     if len(all_eligible_contour) < 2:
@@ -248,17 +250,61 @@ class SternumVertebraNotFoundException(Exception):
     """
     pass
 
-def is_avaliable(dicom_file):
+def is_avaliable(dicom_file, threshold=0.01):
     """判断给定dicom文件是否是符合要求的横切照片
     
     Args:
         dicom_file (str): 胸部横切dicom文件
     
     Returns:
-        bool: 是否符合要求。符合要求为True，反之为False
+        bool: 是否符合要求。符合要求为True，反之为False。运行期间发生任何错误返回False
     """
+    # 读取dicom文件中的像素数据
+    try:
+        ds = pydicom.dcmread(dicom_file)
     
-    pass
+        img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
+
+        # 提取像素轮廓点
+        ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
+        _, contours, _ = cv2.findContours(
+            binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # 将所有轮廓按轮廓点数量由大到小排序
+        contours = sorted(contours, key=lambda x: len(x))
+
+        out_contour, _ = find_outer_contour(contours)
+
+        top_point = find_boundary_point(out_contour, "top")
+        botom_point = find_boundary_point(out_contour, "bottom")
+        left_point = find_boundary_point(out_contour, "left")
+        right_point = find_boundary_point(out_contour, "right")
+
+        if np.abs(right_point[1] - top_point[1]) < 10:
+            return False
+        
+        if np.abs(left_point[1] - top_point[1]) < 10:
+            return False
+
+        here = os.path.abspath(os.path.dirname(__file__))
+        all_outline = glob.glob(os.path.join(here, "assets/outline/*"))
+
+        for outline in all_outline:
+            f = open(outline, "rb")
+            target_contours = pickle.load(f)
+            for c in target_contours:
+                sim = cv2.matchShapes(out_contour, c, 1, 0.0)
+                if sim <= threshold:
+                    return True
+            f.close()
+    
+        return False
+    except: 
+        # 文件读取失败则直接返回Fasle
+        return False
+    
+    return True
+
 
 def depression_degree(dicom_file):
     """判断当前胸部横切的凹陷程度

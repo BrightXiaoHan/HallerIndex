@@ -1,12 +1,16 @@
 import os
 import numpy as np
-from src import diagnosis_v2, depression_degree
+from src import diagnosis_v2, depression_degree, is_avaliable
 
 def test_chest_diagnosis_v2(dicom_test_files):
 
     for f in dicom_test_files:
         h, figure = diagnosis_v2(f)
 
+def test_is_avaliable(dicom_test_files):
+	for f in dicom_test_files:
+		flag = is_avaliable(f)
+		# assert flag is True
 
 def test_batch(src_dest_mapping):
 	

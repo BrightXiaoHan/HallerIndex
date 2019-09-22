@@ -53,7 +53,7 @@ def judge_concavity(x, y):
     # TODO
     return False
 
-
+@DeprecationWarning
 def diagnosis(dicom_file, saved_path=None):
 
     # 读取dicom文件中的像素数据
