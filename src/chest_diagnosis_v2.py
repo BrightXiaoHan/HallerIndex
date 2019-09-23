@@ -505,19 +505,6 @@ def diagnosis(dicom_file, saved_path=None):
     plt.plot(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", linewidth=4)
     plt.plot(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=4)
 
-    # 闭合内外轮廓曲线
-    # plt.plot([left_chest_near_vertebra[0], right_chest_near_vertebra[0]],
-    #         [left_chest_near_vertebra[1], right_chest_near_vertebra[1]],
-    #         color="black", 
-    #         linewidth=4
-    
-    # )
-    # plt.plot([left_chest_near_sternum[0], bottom_sternum_point[0], right_chest_near_sternum[0]],
-    #         [left_chest_near_sternum[1], bottom_sternum_point[1], right_chest_near_sternum[1]],
-    #         color="black", 
-    #         linewidth=4
-    # )
-    
     # # 画上胸骨
     # plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", linewidth=1)
 
@@ -543,6 +530,21 @@ def diagnosis(dicom_file, saved_path=None):
     # for c in rib_contours:
     #     plt.scatter(c[:, 0, 0], c[:, 0, 1], color="yellow", linewidth=1)
 
+    # 闭合内外轮廓曲线
+    # 闭合轮廓下部（脊椎骨处）
+    plt.plot([left_chest_near_sternum[0], bottom_sternum_point[0], right_chest_near_sternum[0]],
+            [left_chest_near_sternum[1], bottom_sternum_point[1], right_chest_near_sternum[1]],
+            color="black", 
+            linewidth=4
+    )
+    # 闭合轮廓上部（胸肋骨处）
+    inner_mapping_bound = filter_contour_points(out_contour, x_min=left_chest_near_vertebra[0], x_max=right_chest_near_vertebra[0], y_max=y)
+    inner_mapping_bound[:, :, 1] = inner_mapping_bound[:, :, 1] + 20
+    inner_mapping_bound = np.concatenate([inner_mapping_bound[:, 0, :], np.stack([left_chest_near_vertebra, right_chest_near_vertebra], 0)])
+    indexes = np.argsort(inner_mapping_bound[:, 0])
+    inner_mapping_bound = inner_mapping_bound[indexes]
+    plt.plot(inner_mapping_bound[:, 0], inner_mapping_bound[:, 1], color="black", linewidth=4)
+    
     plt.legend()
 
     figure_image = fig2img(fig)
