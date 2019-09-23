@@ -6,7 +6,7 @@ import json
 import numpy as np
 
 from tornado.web import RequestHandler, Application
-from src import diagnosis_v1, diagnosis_v2, depression_degree
+from src import diagnosis_v1, diagnosis_v2, depression_degree, is_avaliable
 from src.utils import image_to_base64
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -63,6 +63,11 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
             reader = io.BufferedReader(io.BytesIO(file_content))
             reader.raw.name = "tmp_name"
             degrees.append(depression_degree(reader))
+            # 过滤不符合条件的照片
+            if is_avaliable(reader):
+                reader = io.BufferedReader(io.BytesIO(file_content))
+                reader.raw.name = "tmp_name"
+                degrees.append(depression_degree(reader))
 
         degrees = np.array(degrees)
         index = np.argmax(degrees)
