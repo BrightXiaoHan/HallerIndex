@@ -62,7 +62,7 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
         for file_content in files:
             reader = io.BufferedReader(io.BytesIO(file_content))
             reader.raw.name = "tmp_name"
-            degrees.append(depression_degree(reader))
+
             # 过滤不符合条件的照片
             if is_avaliable(reader):
                 reader = io.BufferedReader(io.BytesIO(file_content))
