@@ -58,6 +58,7 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
     def on_process_file(self, files):
 
         degrees = []
+        avaliable_files = []
 
         for file_content in files:
             reader = io.BufferedReader(io.BytesIO(file_content))
@@ -68,10 +69,11 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
                 reader = io.BufferedReader(io.BytesIO(file_content))
                 reader.raw.name = "tmp_name"
                 degrees.append(depression_degree(reader))
+                avaliable_files.append(file_content)
 
         degrees = np.array(degrees)
         index = np.argmax(degrees)
-        f = files[index]
+        f = avaliable_files[index]
 
         reader = io.BufferedReader(io.BytesIO(f))
         reader.raw.name = "tmp_name"
