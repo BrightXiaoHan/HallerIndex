@@ -38,21 +38,6 @@ class _BaseDiagnosisiHandler(RequestHandler):
         raise NotImplementedError
 
 
-# # v1 is Deprecation
-# class DiagnosisHandlerV1(_BaseDiagnosisiHandler):
-
-#     def on_process_file(self, file_content):
-#         reader = io.BufferedReader(io.BytesIO(file_content))
-#         reader.raw.name = "tmp_name"
-#         (h1, h2), figure = diagnosis_v1(reader)
-
-#         data = {
-#             "H1": h1,
-#             "H2": h2
-#         }
-#         return data, figure
-
-
 class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
 
     def on_process_file(self, files):
