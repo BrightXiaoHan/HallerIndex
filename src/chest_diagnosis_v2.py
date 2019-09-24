@@ -357,12 +357,15 @@ def diagnosis(dicom_file, saved_path=None):
     Returns:
         tuple: haller_index (Haller指数), figure_image(带辅助线的照片)
     """
-
-    # 读取dicom文件中的像素数据
+    # ------------------------------------------------------------------------- #
+    #        读取dicom文件中的像素数据                                             
+    # ------------------------------------------------------------------------- #
     ds = pydicom.dcmread(dicom_file)
     img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
 
-    # 提取像素轮廓点
+    # ------------------------------------------------------------------------- #
+    #        使用阈值为3提取像素轮廓点                                             
+    # ------------------------------------------------------------------------- #
     ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
     _, contours, _ = cv2.findContours(
         binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -370,6 +373,10 @@ def diagnosis(dicom_file, saved_path=None):
     # 将所有轮廓按轮廓点数量由大到小排序
     contours = sorted(contours, key=lambda x: len(x))
 
+
+    # ------------------------------------------------------------------------- #
+    #        找外胸腔轮廓及其关键点                                           
+    # ------------------------------------------------------------------------- #
     # 找到胸外轮廓(区域面积最大的为外胸廓轮廓点)
     out_contour, out_contour_area = find_outer_contour(contours)
     out_contour, (cx, cy) = sort_clockwise(out_contour)
@@ -384,6 +391,9 @@ def diagnosis(dicom_file, saved_path=None):
     out_contour_bottom = find_boundary_point(out_contour, "bottom")
     out_contour_top = find_boundary_point(out_contour, "top")
 
+    # ------------------------------------------------------------------------- #
+    #        找内胸腔轮廓及其关键点                                           
+    # ------------------------------------------------------------------------- #
     # 找到内胸腔轮廓
     inner_contours = find_inner_contour(contours, out_contour_area)
 
@@ -400,6 +410,9 @@ def diagnosis(dicom_file, saved_path=None):
     lowest_1, lowest_2 = (lowest_1, lowest_2) if lowest_1[0] < lowest_2[0] else (
         lowest_2, lowest_1)
 
+    # ------------------------------------------------------------------------- #
+    #        将图像及其轮廓旋转（将其摆正，使其水平）                                           
+    # ------------------------------------------------------------------------- #
     # 以左侧最低点为中心，连线为轴将图像旋转，使得两点连线与X轴平行
     dy = lowest_2[1] - lowest_1[1]
     dx = lowest_2[0] - lowest_1[0]
@@ -414,7 +427,9 @@ def diagnosis(dicom_file, saved_path=None):
                       for contour in inner_contours]
     out_contour = rotate_contours(out_contour, matrix)
 
-    # 找到左右胸最外侧的点，计算a
+    # ------------------------------------------------------------------------- #
+    #        找到左右胸最外侧的点，计算a（即左右内胸腔边界连线）                                           
+    # ------------------------------------------------------------------------- # 
     left_chest_leftmost = find_boundary_point(
         inner_contours[0], position="left")
     right_chest_rightmost = find_boundary_point(
@@ -422,13 +437,18 @@ def diagnosis(dicom_file, saved_path=None):
 
     a = right_chest_rightmost[0] - left_chest_leftmost[0]
 
-    # 提取胸骨轮廓点
+    # ------------------------------------------------------------------------- #
+    #        使用阈值为4，提取胸骨轮廓点                                        
+    # ------------------------------------------------------------------------- #
     ret, binary = cv2.threshold(img, 4, 255, cv2.THRESH_BINARY)
     _, rib_contours, _ = cv2.findContours(
         binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     rib_contours = sorted(rib_contours, key=lambda x: len(x))
 
-
+    
+    # ------------------------------------------------------------------------- #
+    #        找脊椎骨与胸肋骨轮廓以及关键点  vertebra：胸肋骨   sternum：脊椎骨                                  
+    # ------------------------------------------------------------------------- #
     # 找到左右胸轮廓最靠近中间的点
     left_chest_rightmost = find_boundary_point(
         inner_contours[0], position="right")
@@ -452,8 +472,7 @@ def diagnosis(dicom_file, saved_path=None):
     if len(bottom_rib_contours) == 0:
         raise SternumVertebraNotFoundException("请检查您的图像是否符合要求，自动检测无法找找到胸骨。")
     
-    # 如果没有找到上胸骨, 则使用凹陷点替代
-    # if len(top_rib_contours) == 0:
+    # 外胸廓凹陷点向下作为胸肋骨点
     tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 6])
     top_rib_contours.append(np.expand_dims(np.expand_dims(tmp_points, 0), 0))
 
@@ -465,10 +484,16 @@ def diagnosis(dicom_file, saved_path=None):
     top_vertebra_point = find_boundary_point(vertebra_contour, "bottom")
     bottom_sternum_point = find_boundary_point(sternum_contour, "top")
 
+    # ------------------------------------------------------------------------- #
+    #        计算b，即内胸廓凹陷点与脊椎骨上侧点的连线                                 
+    # ------------------------------------------------------------------------- #    
     b = bottom_sternum_point[1] - top_vertebra_point[1]
-
     haller_index = a / b
 
+
+    # ------------------------------------------------------------------------- #
+    #        闭合内胸廓，过滤不需要的点                                 
+    # ------------------------------------------------------------------------- #
     # 找到脊椎骨的左右侧点，和距离左右胸最近的点
     vertebra_contour_left_most = find_boundary_point(vertebra_contour, position="left")
     vertebra_contour_right_most = find_boundary_point(vertebra_contour, position="right")
@@ -492,6 +517,9 @@ def diagnosis(dicom_file, saved_path=None):
                                               y_max=right_chest_near_sternum[1],
                                               mode="drop")
 
+    # ------------------------------------------------------------------------- #
+    #       绘制辅助线                                  
+    # ------------------------------------------------------------------------- #
     fig = plt.figure(figsize=(8, 6))
     plt.imshow(img * 20)
 
