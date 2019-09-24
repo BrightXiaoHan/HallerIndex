@@ -166,18 +166,30 @@ def filter_contour_out_of_box(contour, contours):
     
     return result
 
-def max_area_contour(contours, diverse=False):
+def max_area_contour(contours, diverse=False, filter_zero=False):
     """获取轮廓集合中面积最大的轮廓
     
     Args:
         contours (list): 轮廓集合
     """
-    areas = np.array([cv2.contourArea(c) for c in contours])
+    areas = []
+    filtered_contours = []
+
+    for c in contours:
+        area = cv2.contourArea(c)
+        # 过滤掉面积过小的轮廓
+        if area < 5 and filter_zero:
+            continue
+        areas.append(area)
+        filtered_contours.append(c)
+    
+    areas = np.array(areas)
+
     if diverse:
         index = areas.argmin()
     else:
         index = areas.argmax()
-    return contours[index], areas[index]
+    return filtered_contours[index], areas[index]
 
 
 def rotate_contours(contour, matrix):
@@ -269,7 +281,7 @@ def trap_contour(contour, img_shape, pixel=15):
     _, contours, hierarchy = cv2.findContours(ring, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
     # 面积最小的是内轮廓
-    result_contour, _ = max_area_contour(contours, diverse=True)
+    result_contour, area = max_area_contour(contours, diverse=True, filter_zero=True)
 
     return result_contour
 
@@ -456,6 +468,9 @@ def diagnosis(dicom_file, saved_path=None):
                       for contour in inner_contours]
     out_contour = rotate_contours(out_contour, matrix)
 
+    inner_left_top_point = find_boundary_point(inner_contours[0], "top")
+    inner_right_top_point = find_boundary_point(inner_contours[1], "top")
+
     # ------------------------------------------------------------------------- #
     #        找到左右胸最外侧的点，计算a（即左右内胸腔边界连线）                                           
     # ------------------------------------------------------------------------- # 
@@ -533,26 +548,26 @@ def diagnosis(dicom_file, saved_path=None):
     left_chest_near_sternum = nearest_point(inner_contours[0], bottom_sternum_point)
     right_chest_near_sternum = nearest_point(inner_contours[1], bottom_sternum_point)
 
-    y_mid = bottom_sternum_point[1] - 15  # y轴上下分界点
+    y_mid = max([inner_left_top_point[1], inner_right_top_point[1], top_vertebra_point[1]])  # y轴上下分界点
     # 过滤左右胸的点
     inner_contours[0] = filter_contour_points(inner_contours[0],
                                               y_min=y_mid,
                                               mode="keep")
     inner_contours[0] = filter_contour_points(inner_contours[0],
-                                              x_min=lowest_1[0],
+                                              x_min=inner_left_top_point[0],
                                               y_max=left_chest_near_sternum[1],
                                               mode="drop")
-    inner_contours[0], _ = sort_clockwise(inner_contours[0], demarcation=90)
+    inner_contours[0], _ = sort_clockwise(inner_contours[0], demarcation=45)
 
     # 过滤右胸的点
     inner_contours[1] = filter_contour_points(inner_contours[1],
                                               y_min=y_mid,
                                               mode="keep")
     inner_contours[1] = filter_contour_points(inner_contours[1],
-                                              x_max=lowest_2[0],
+                                              x_max=inner_right_top_point[0],
                                               y_max=right_chest_near_sternum[1],
                                               mode="drop")
-    inner_contours[1], _ = sort_clockwise(inner_contours[1], demarcation=90)
+    inner_contours[1], _ = sort_clockwise(inner_contours[1], demarcation=135)
 
     trapped_outter_contour = trap_contour(out_contour, img.shape)
     trapped_outter_contour = filter_contour_points(trapped_outter_contour,
