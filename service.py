@@ -6,7 +6,7 @@ import json
 import numpy as np
 
 from tornado.web import RequestHandler, Application
-from src import diagnosis_v1, diagnosis_v2, depression_degree, is_avaliable
+from src import diagnosis_v2, depression_degree, is_avaliable
 from src.utils import image_to_base64
 
 here = os.path.dirname(os.path.abspath(__file__))
