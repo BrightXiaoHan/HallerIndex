@@ -19,10 +19,6 @@ http://127.0.0.1:10001/yuyi/api/chest/index.html
 ```
 python接口
 ```python
-# 基于论文1的检测方法
-from src import diagnosis_v1
-h, figure= diagnosis_v1(f)
-
 # 基于论文二的检测方法
 from src import diagnosis_v2
 h, figure = diagnosis_v2(f)
