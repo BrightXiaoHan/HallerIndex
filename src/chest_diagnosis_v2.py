@@ -203,6 +203,7 @@ def sort_clockwise(contour, center=None, anti=True, demarcation=0):
         contour(np.ndarray): with shape (n, 1, 2)
         center(tuple): shape(2,).指定排序的中心点，如果未指定，则以轮廓的重心点为中心
         anti(bool): True为逆时针， False为顺时针
+        demarcation(float): 排序的起始角度（用度数表示）
     Return:
         np.ndarray: with shape (n, 1, 2)
     """
@@ -221,6 +222,8 @@ def sort_clockwise(contour, center=None, anti=True, demarcation=0):
     plural = (x - cx) + (y - cy) * 1j
 
     angle = np.angle(plural, deg=True)
+
+    angle = (angle + demarcation) % 360
 
     if anti:  # 逆时针排序
         sort_keys = np.argsort(angle)
@@ -499,7 +502,7 @@ def diagnosis(dicom_file, saved_path=None):
         raise SternumVertebraNotFoundException("请检查您的图像是否符合要求，自动检测无法找找到胸骨。")
     
     # 外胸廓凹陷点向下作为胸肋骨点
-    tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 6])
+    tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 10])
     top_rib_contours.append(np.expand_dims(np.expand_dims(tmp_points, 0), 0))
 
     # 将上下胸骨的轮廓合并
@@ -539,6 +542,7 @@ def diagnosis(dicom_file, saved_path=None):
                                               x_min=lowest_1[0],
                                               y_max=left_chest_near_sternum[1],
                                               mode="drop")
+    inner_contours[0], _ = sort_clockwise(inner_contours[0], demarcation=90)
 
     # 过滤右胸的点
     inner_contours[1] = filter_contour_points(inner_contours[1],
@@ -548,11 +552,13 @@ def diagnosis(dicom_file, saved_path=None):
                                               x_max=lowest_2[0],
                                               y_max=right_chest_near_sternum[1],
                                               mode="drop")
+    inner_contours[1], _ = sort_clockwise(inner_contours[1], demarcation=90)
 
     trapped_outter_contour = trap_contour(out_contour, img.shape)
     trapped_outter_contour = filter_contour_points(trapped_outter_contour,
                                                    y_max=y_mid,
                                                    mode="keep")
+    trapped_outter_contour, _ = sort_clockwise(trapped_outter_contour, center=bottom_sternum_point, demarcation=270)
 
 
     # ------------------------------------------------------------------------- #
