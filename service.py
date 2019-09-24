@@ -100,5 +100,6 @@ if __name__ == "__main__":
         template_path=os.path.join(here, "static"),
         static_path=os.path.join(here, "static"),
     )
-    application.listen(10001)
+    server = tornado.httpserver.HTTPServer(application, max_buffer_size=10485760000)  # 10G
+    server.listen(10001)
     tornado.ioloop.IOLoop.instance().start()
