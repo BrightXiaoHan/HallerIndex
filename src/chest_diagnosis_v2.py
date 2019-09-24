@@ -166,15 +166,30 @@ def filter_contour_out_of_box(contour, contours):
     
     return result
 
-def max_area_contour(contours):
+def max_area_contour(contours, diverse=False, filter_zero=False):
     """获取轮廓集合中面积最大的轮廓
     
     Args:
         contours (list): 轮廓集合
     """
-    areas = np.array([cv2.contourArea(c) for c in contours])
-    max_index = areas.argmax()
-    return contours[max_index], areas[max_index]
+    areas = []
+    filtered_contours = []
+
+    for c in contours:
+        area = cv2.contourArea(c)
+        # 过滤掉面积过小的轮廓
+        if area < 5 and filter_zero:
+            continue
+        areas.append(area)
+        filtered_contours.append(c)
+    
+    areas = np.array(areas)
+
+    if diverse:
+        index = areas.argmin()
+    else:
+        index = areas.argmax()
+    return filtered_contours[index], areas[index]
 
 
 def rotate_contours(contour, matrix):
@@ -192,7 +207,7 @@ def rotate_contours(contour, matrix):
     contour = np.expand_dims(contour.transpose(1, 0), 1)
     return contour.astype(np.int)
 
-def sort_clockwise(contour, center=None, anti=True):
+def sort_clockwise(contour, center=None, anti=True, demarcation=0):
     """
     将轮廓坐标点逆时针排序
 
@@ -200,6 +215,7 @@ def sort_clockwise(contour, center=None, anti=True):
         contour(np.ndarray): with shape (n, 1, 2)
         center(tuple): shape(2,).指定排序的中心点，如果未指定，则以轮廓的重心点为中心
         anti(bool): True为逆时针， False为顺时针
+        demarcation(float): 排序的起始角度（用度数表示）
     Return:
         np.ndarray: with shape (n, 1, 2)
     """
@@ -217,7 +233,9 @@ def sort_clockwise(contour, center=None, anti=True):
 
     plural = (x - cx) + (y - cy) * 1j
 
-    angle = np.angle(plural)
+    angle = np.angle(plural, deg=True)
+
+    angle = (angle + demarcation) % 360
 
     if anti:  # 逆时针排序
         sort_keys = np.argsort(angle)
@@ -243,6 +261,50 @@ def nearest_point(contour, point):
 
     result = np.array([x[sort_keys[0]], y[sort_keys[0]]])
     return result
+
+def trap_contour(contour, img_shape, pixel=15):
+    """将轮廓原地缩小若干个像素
+    
+    Args:
+        contour (np.ndarray): 待缩小的轮廓 (n, 1, 2)
+        img_shape (tuple): 原始图像的大小
+        pixel (int, optional): 需要缩小的像素值. Defaults to 10.
+    
+    Returns:
+        contour (np.ndarray): 缩小后的轮廓 (n, 1, 2)
+    """
+    img = np.ones(shape=img_shape, dtype="uint8") * 255
+    cv2.drawContours(img, [contour], -1, (0, 0, 0), 3)
+    dist = cv2.distanceTransform(img, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    ring = cv2.inRange(dist, pixel-0.5, pixel+0.5) # take all pixels at distance between 9.5px and 10.5px
+
+    _, contours, hierarchy = cv2.findContours(ring, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+    # 面积最小的是内轮廓
+    result_contour, area = max_area_contour(contours, diverse=True, filter_zero=True)
+
+    return result_contour
+
+
+def refine_contour(contour, img_shape):
+    """重整轮廓，将轮廓点的内折擦除
+    
+    Args:
+        contour (np.ndarray): 待缩小的轮廓 (n, 1, 2)
+        img_shape (tuple): 原始图像的大小
+    
+    Returns:
+        [type]: [description]
+    """
+    img = np.ones(shape=img_shape, dtype="uint8") * 255
+    cv2.drawContours(img, [contour], -1, (0, 0, 0), 4)
+    cv2.drawContours(img, [contour], -1, (0, 0, 0), -1)
+
+    _, contours, hierarchy = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+    result_contour = sorted(contours, key=lambda x: len(x))[-1]
+
+    return result_contour
 
 
 class SternumVertebraNotFoundException(Exception):
@@ -357,12 +419,15 @@ def diagnosis(dicom_file, saved_path=None):
     Returns:
         tuple: haller_index (Haller指数), figure_image(带辅助线的照片)
     """
-
-    # 读取dicom文件中的像素数据
+    # ------------------------------------------------------------------------- #
+    #        读取dicom文件中的像素数据                                             
+    # ------------------------------------------------------------------------- #
     ds = pydicom.dcmread(dicom_file)
     img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
 
-    # 提取像素轮廓点
+    # ------------------------------------------------------------------------- #
+    #        使用阈值为3提取像素轮廓点                                             
+    # ------------------------------------------------------------------------- #
     ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
     _, contours, _ = cv2.findContours(
         binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -370,6 +435,10 @@ def diagnosis(dicom_file, saved_path=None):
     # 将所有轮廓按轮廓点数量由大到小排序
     contours = sorted(contours, key=lambda x: len(x))
 
+
+    # ------------------------------------------------------------------------- #
+    #        找外胸腔轮廓及其关键点                                           
+    # ------------------------------------------------------------------------- #
     # 找到胸外轮廓(区域面积最大的为外胸廓轮廓点)
     out_contour, out_contour_area = find_outer_contour(contours)
     out_contour, (cx, cy) = sort_clockwise(out_contour)
@@ -384,6 +453,9 @@ def diagnosis(dicom_file, saved_path=None):
     out_contour_bottom = find_boundary_point(out_contour, "bottom")
     out_contour_top = find_boundary_point(out_contour, "top")
 
+    # ------------------------------------------------------------------------- #
+    #        找内胸腔轮廓及其关键点                                           
+    # ------------------------------------------------------------------------- #
     # 找到内胸腔轮廓
     inner_contours = find_inner_contour(contours, out_contour_area)
 
@@ -400,6 +472,9 @@ def diagnosis(dicom_file, saved_path=None):
     lowest_1, lowest_2 = (lowest_1, lowest_2) if lowest_1[0] < lowest_2[0] else (
         lowest_2, lowest_1)
 
+    # ------------------------------------------------------------------------- #
+    #        将图像及其轮廓旋转（将其摆正，使其水平）                                           
+    # ------------------------------------------------------------------------- #
     # 以左侧最低点为中心，连线为轴将图像旋转，使得两点连线与X轴平行
     dy = lowest_2[1] - lowest_1[1]
     dx = lowest_2[0] - lowest_1[0]
@@ -414,7 +489,12 @@ def diagnosis(dicom_file, saved_path=None):
                       for contour in inner_contours]
     out_contour = rotate_contours(out_contour, matrix)
 
-    # 找到左右胸最外侧的点，计算a
+    inner_left_top_point = find_boundary_point(inner_contours[0], "top")
+    inner_right_top_point = find_boundary_point(inner_contours[1], "top")
+
+    # ------------------------------------------------------------------------- #
+    #        找到左右胸最外侧的点，计算a（即左右内胸腔边界连线）                                           
+    # ------------------------------------------------------------------------- # 
     left_chest_leftmost = find_boundary_point(
         inner_contours[0], position="left")
     right_chest_rightmost = find_boundary_point(
@@ -422,13 +502,18 @@ def diagnosis(dicom_file, saved_path=None):
 
     a = right_chest_rightmost[0] - left_chest_leftmost[0]
 
-    # 提取胸骨轮廓点
+    # ------------------------------------------------------------------------- #
+    #        使用阈值为4，提取胸骨轮廓点                                        
+    # ------------------------------------------------------------------------- #
     ret, binary = cv2.threshold(img, 4, 255, cv2.THRESH_BINARY)
     _, rib_contours, _ = cv2.findContours(
         binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     rib_contours = sorted(rib_contours, key=lambda x: len(x))
 
-
+    
+    # ------------------------------------------------------------------------- #
+    #        找脊椎骨与胸肋骨轮廓以及关键点  vertebra：胸肋骨   sternum：脊椎骨                                  
+    # ------------------------------------------------------------------------- #
     # 找到左右胸轮廓最靠近中间的点
     left_chest_rightmost = find_boundary_point(
         inner_contours[0], position="right")
@@ -442,7 +527,6 @@ def diagnosis(dicom_file, saved_path=None):
     demarcation_point = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2 - 10  # 由于有的胸骨轮廓会超过中点线， 所以此处以重点线上方10像素为分界点
 
     # 以此分界点为接线，将胸骨分为上下两个部分
-    top_rib_contours = filter_contours(rib_contours, y_max=demarcation_point, y_min=out_contour_top[1], x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="all")
     bottom_rib_contours = filter_contours(rib_contours, y_min=demarcation_point, y_max=out_contour_bottom[1], x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="all")
 
     # 下胸骨选轮廓集合的top3
@@ -452,23 +536,27 @@ def diagnosis(dicom_file, saved_path=None):
     if len(bottom_rib_contours) == 0:
         raise SternumVertebraNotFoundException("请检查您的图像是否符合要求，自动检测无法找找到胸骨。")
     
-    # 如果没有找到上胸骨, 则使用凹陷点替代
-    # if len(top_rib_contours) == 0:
-    tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 6])
-    top_rib_contours.append(np.expand_dims(np.expand_dims(tmp_points, 0), 0))
+    # 外胸廓凹陷点向下作为胸肋骨点
+    tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 10])
 
     # 将上下胸骨的轮廓合并
-    vertebra_contour = top_rib_contours[-1]
+    vertebra_contour = np.expand_dims(np.expand_dims(tmp_points, 0), 0)
     sternum_contour = np.concatenate(bottom_rib_contours)
 
     # 寻找脊椎骨最上点， 和胸骨最下点
     top_vertebra_point = find_boundary_point(vertebra_contour, "bottom")
     bottom_sternum_point = find_boundary_point(sternum_contour, "top")
 
+    # ------------------------------------------------------------------------- #
+    #        计算b，即内胸廓凹陷点与脊椎骨上侧点的连线                                 
+    # ------------------------------------------------------------------------- #    
     b = bottom_sternum_point[1] - top_vertebra_point[1]
-
     haller_index = a / b
 
+
+    # ------------------------------------------------------------------------- #
+    #        闭合内胸廓，过滤不需要的点                                 
+    # ------------------------------------------------------------------------- #
     # 找到脊椎骨的左右侧点，和距离左右胸最近的点
     vertebra_contour_left_most = find_boundary_point(vertebra_contour, position="left")
     vertebra_contour_right_most = find_boundary_point(vertebra_contour, position="right")
@@ -479,19 +567,37 @@ def diagnosis(dicom_file, saved_path=None):
     left_chest_near_sternum = nearest_point(inner_contours[0], bottom_sternum_point)
     right_chest_near_sternum = nearest_point(inner_contours[1], bottom_sternum_point)
 
+    y_mid = max([inner_left_top_point[1], inner_right_top_point[1], top_vertebra_point[1]])  # y轴上下分界点
     # 过滤左右胸的点
-    inner_contours[0] = filter_contour_points(inner_contours[0], 
-                                              x_min=lowest_1[0], 
+    inner_contours[0] = filter_contour_points(inner_contours[0],
+                                              y_min=y_mid,
+                                              mode="keep")
+    inner_contours[0] = filter_contour_points(inner_contours[0],
+                                              x_min=inner_left_top_point[0],
                                               y_max=left_chest_near_sternum[1],
-                                              y_min=left_chest_near_vertebra[1],
                                               mode="drop")
+    inner_contours[0], _ = sort_clockwise(inner_contours[0], demarcation=45)
+
     # 过滤右胸的点
-    inner_contours[1] = filter_contour_points(inner_contours[1], 
-                                              x_max=lowest_2[0], 
-                                              y_min=right_chest_near_vertebra[1],
+    inner_contours[1] = filter_contour_points(inner_contours[1],
+                                              y_min=y_mid,
+                                              mode="keep")
+    inner_contours[1] = filter_contour_points(inner_contours[1],
+                                              x_max=inner_right_top_point[0],
                                               y_max=right_chest_near_sternum[1],
                                               mode="drop")
+    inner_contours[1], _ = sort_clockwise(inner_contours[1], demarcation=135)
 
+    trapped_outter_contour = trap_contour(out_contour, img.shape)
+    trapped_outter_contour = filter_contour_points(trapped_outter_contour,
+                                                   y_max=y_mid,
+                                                   mode="keep")
+    trapped_outter_contour, _ = sort_clockwise(trapped_outter_contour, center=bottom_sternum_point, demarcation=270)
+
+
+    # ------------------------------------------------------------------------- #
+    #       绘制辅助线                                  
+    # ------------------------------------------------------------------------- #
     fig = plt.figure(figsize=(8, 6))
     plt.imshow(img * 20)
 
@@ -502,8 +608,21 @@ def diagnosis(dicom_file, saved_path=None):
     plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=4)
 
     # 画内轮廓
-    plt.plot(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", linewidth=4)
-    plt.plot(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=4)
+    inner_contour_all_in_one = np.concatenate([inner_contours[0], inner_contours[1], trapped_outter_contour])
+    inner_contour_all_in_one = refine_contour(inner_contour_all_in_one, img.shape)
+
+    # plt.plot(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", linewidth=4)
+    # plt.plot(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=4)
+    # plt.plot(trapped_outter_contour[:, 0, 0], trapped_outter_contour[:, 0, 1], color="black", linewidth=4)
+    # # 闭合内外轮廓曲线
+    # # 闭合轮廓下部（脊椎骨处）
+    # plt.plot([left_chest_near_sternum[0], bottom_sternum_point[0], right_chest_near_sternum[0]],
+    #         [left_chest_near_sternum[1], bottom_sternum_point[1], right_chest_near_sternum[1]],
+    #         color="black", 
+    #         linewidth=4
+    # )
+    plt.plot(inner_contour_all_in_one[:, 0, 0], inner_contour_all_in_one[:, 0, 1], color="black", linewidth=4)
+
 
     # # 画上胸骨
     # plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", linewidth=1)
@@ -518,7 +637,7 @@ def diagnosis(dicom_file, saved_path=None):
     
     plt.plot([xl, xr], [y, y], color="magenta", linewidth=2)
 
-    x = (top_vertebra_point[0] + bottom_sternum_point[0]) / 2
+    x = bottom_sternum_point[0]
     yt = top_vertebra_point[1] + 10
     yb = bottom_sternum_point[1]
 
@@ -530,21 +649,8 @@ def diagnosis(dicom_file, saved_path=None):
     # for c in rib_contours:
     #     plt.scatter(c[:, 0, 0], c[:, 0, 1], color="yellow", linewidth=1)
 
-    # 闭合内外轮廓曲线
-    # 闭合轮廓下部（脊椎骨处）
-    plt.plot([left_chest_near_sternum[0], bottom_sternum_point[0], right_chest_near_sternum[0]],
-            [left_chest_near_sternum[1], bottom_sternum_point[1], right_chest_near_sternum[1]],
-            color="black", 
-            linewidth=4
-    )
-    # 闭合轮廓上部（胸肋骨处）
-    inner_mapping_bound = filter_contour_points(out_contour, x_min=left_chest_near_vertebra[0], x_max=right_chest_near_vertebra[0], y_max=y)
-    inner_mapping_bound[:, :, 1] = inner_mapping_bound[:, :, 1] + 20
-    inner_mapping_bound = np.concatenate([inner_mapping_bound[:, 0, :], np.stack([left_chest_near_vertebra, right_chest_near_vertebra], 0)])
-    indexes = np.argsort(inner_mapping_bound[:, 0])
-    inner_mapping_bound = inner_mapping_bound[indexes]
-    plt.plot(inner_mapping_bound[:, 0], inner_mapping_bound[:, 1], color="black", linewidth=4)
-    
+
+
     plt.legend()
 
     figure_image = fig2img(fig)
