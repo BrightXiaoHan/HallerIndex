@@ -41,3 +41,25 @@ def image_to_base64(img):
     img.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue())
     return img_str
+
+
+def erode(img):
+
+    ret, binary = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    # 获得结构元素
+    # 第一个参数：结构元素形状，这里是矩形
+    # 第二个参数：结构元素大小
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    # 执行腐蚀
+    dst = cv2.erode(binary, kernel)
+    return dst
+
+def dilate(img):
+    ret, binary = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    # 获得结构元素
+    # 第一个参数：结构元素形状，这里是矩形
+    # 第二个参数：结构元素大小
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    # 执行膨胀
+    dst = cv2.dilate(binary, kernel)
+    return dst
