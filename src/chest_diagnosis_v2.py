@@ -286,6 +286,27 @@ def trap_contour(contour, img_shape, pixel=15):
     return result_contour
 
 
+def refine_contour(contour, img_shape):
+    """重整轮廓，将轮廓点的内折擦除
+    
+    Args:
+        contour (np.ndarray): 待缩小的轮廓 (n, 1, 2)
+        img_shape (tuple): 原始图像的大小
+    
+    Returns:
+        [type]: [description]
+    """
+    img = np.ones(shape=img_shape, dtype="uint8") * 255
+    cv2.drawContours(img, [contour], -1, (0, 0, 0), 4)
+    cv2.drawContours(img, [contour], -1, (0, 0, 0), -1)
+
+    _, contours, hierarchy = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+    result_contour = sorted(contours, key=lambda x: len(x))[-1]
+
+    return result_contour
+
+
 class SternumVertebraNotFoundException(Exception):
     """无法找到脊椎骨或胸骨的错误
     """
@@ -506,7 +527,6 @@ def diagnosis(dicom_file, saved_path=None):
     demarcation_point = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2 - 10  # 由于有的胸骨轮廓会超过中点线， 所以此处以重点线上方10像素为分界点
 
     # 以此分界点为接线，将胸骨分为上下两个部分
-    top_rib_contours = filter_contours(rib_contours, y_max=demarcation_point, y_min=out_contour_top[1], x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="all")
     bottom_rib_contours = filter_contours(rib_contours, y_min=demarcation_point, y_max=out_contour_bottom[1], x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="all")
 
     # 下胸骨选轮廓集合的top3
@@ -518,10 +538,9 @@ def diagnosis(dicom_file, saved_path=None):
     
     # 外胸廓凹陷点向下作为胸肋骨点
     tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 10])
-    top_rib_contours.append(np.expand_dims(np.expand_dims(tmp_points, 0), 0))
 
     # 将上下胸骨的轮廓合并
-    vertebra_contour = top_rib_contours[-1]
+    vertebra_contour = np.expand_dims(np.expand_dims(tmp_points, 0), 0)
     sternum_contour = np.concatenate(bottom_rib_contours)
 
     # 寻找脊椎骨最上点， 和胸骨最下点
@@ -589,9 +608,21 @@ def diagnosis(dicom_file, saved_path=None):
     plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=4)
 
     # 画内轮廓
-    plt.plot(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", linewidth=4)
-    plt.plot(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=4)
-    plt.plot(trapped_outter_contour[:, 0, 0], trapped_outter_contour[:, 0, 1], color="black", linewidth=4)
+    inner_contour_all_in_one = np.concatenate([inner_contours[0], inner_contours[1], trapped_outter_contour])
+    inner_contour_all_in_one = refine_contour(inner_contour_all_in_one, img.shape)
+
+    # plt.plot(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", linewidth=4)
+    # plt.plot(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=4)
+    # plt.plot(trapped_outter_contour[:, 0, 0], trapped_outter_contour[:, 0, 1], color="black", linewidth=4)
+    # # 闭合内外轮廓曲线
+    # # 闭合轮廓下部（脊椎骨处）
+    # plt.plot([left_chest_near_sternum[0], bottom_sternum_point[0], right_chest_near_sternum[0]],
+    #         [left_chest_near_sternum[1], bottom_sternum_point[1], right_chest_near_sternum[1]],
+    #         color="black", 
+    #         linewidth=4
+    # )
+    plt.plot(inner_contour_all_in_one[:, 0, 0], inner_contour_all_in_one[:, 0, 1], color="black", linewidth=4)
+
 
     # # 画上胸骨
     # plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", linewidth=1)
@@ -618,13 +649,7 @@ def diagnosis(dicom_file, saved_path=None):
     # for c in rib_contours:
     #     plt.scatter(c[:, 0, 0], c[:, 0, 1], color="yellow", linewidth=1)
 
-    # 闭合内外轮廓曲线
-    # 闭合轮廓下部（脊椎骨处）
-    plt.plot([left_chest_near_sternum[0], bottom_sternum_point[0], right_chest_near_sternum[0]],
-            [left_chest_near_sternum[1], bottom_sternum_point[1], right_chest_near_sternum[1]],
-            color="black", 
-            linewidth=4
-    )
+
 
     plt.legend()
 
