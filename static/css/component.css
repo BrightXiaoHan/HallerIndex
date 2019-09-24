@@ -8,16 +8,16 @@
 }
 
 .inputfile + label {
-    max-width: 80%;
-    font-size: 1.25rem;
+    width: 100%;
+    font-size: 1rem;
     /* 20px */
     font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    /*text-overflow: ellipsis;
+    white-space: nowrap;*/
     cursor: pointer;
     display: inline-block;
     overflow: hidden;
-    padding: 0.625rem 1.25rem;
+    /*padding: 0.625rem 1.25rem;*/
     /* 10px 20px */
 }
 
@@ -93,22 +93,27 @@
 
 .inputfile-4 + label {
     color: #d3394c;
+    background-color: #dfc8ca;
+    padding: 3px 0;
+  	border-radius: 20px;
 }
 
 .inputfile-4:focus + label,
 .inputfile-4.has-focus + label,
 .inputfile-4 + label:hover {
     color: #722040;
+    outline:none;
 }
 
 .inputfile-4 + label figure {
-    width: 100px;
-    height: 100px;
+    width: 2rem;
+    height: 2rem;
     border-radius: 50%;
     background-color: #d3394c;
-    display: block;
-    padding: 20px;
-    margin: 0 auto 10px;
+    display: inline-block;
+    padding: 5px;
+    margin-right:5px;
+    /*margin: 0 auto 10px;*/
 }
 
 .inputfile-4:focus + label figure,

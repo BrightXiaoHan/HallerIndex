@@ -148,14 +148,15 @@ a:focus {
 
 .container{
 	text-align: center;
+	padding:3rem 2rem;
 }
 
 .content {
-	width: 100%;
-	max-width: 800px;
-	text-align: center;
-	margin: 0 auto;
-	padding: 0 0 3em 0;
+	/*max-width: 800px;*/
+	text-align: left;
+	/*margin: 0 auto;*/
+	/*padding: 0 0 3em 0;*/
+	/*margin:3rem 0 0 1rem;*/
 }
 
 .content footer {
@@ -169,8 +170,34 @@ a:focus {
 }
 
 .box {
-	background-color: #dfc8ca;
-	padding: 6.25rem 1.25rem;
+	/*background-color: #dfc8ca;*/
+	/*padding: 6.25rem 1.25rem;*/
+	width:8.5rem;
+	text-align:center;
+}
+.box2 .file-tip{
+	margin-left:2rem;
+}
+
+.file-revert{
+	width:8.5rem;
+	height:38px;
+	line-height:38px;
+	font-size:1rem;
+	background:#dfc8ca;
+	color:#d3394c;
+	border-radius: 20px;
+	font-weight: 700;
+	border:none;
+}
+.file-revert:hover{
+	color:#722040;
+	outline: none;
+}
+
+.dicom_result{
+	margin:2rem 0;
+	max-width: 80%;
 }
 
 .box + .box {
