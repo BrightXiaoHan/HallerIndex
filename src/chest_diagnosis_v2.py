@@ -611,24 +611,7 @@ def diagnosis(dicom_file, saved_path=None):
     inner_contour_all_in_one = np.concatenate([inner_contours[0], inner_contours[1], trapped_outter_contour])
     inner_contour_all_in_one = refine_contour(inner_contour_all_in_one, img.shape)
 
-    # plt.plot(inner_contours[0][:, 0, 0], inner_contours[0][:, 0, 1], color="black", linewidth=4)
-    # plt.plot(inner_contours[1][:, 0, 0], inner_contours[1][:, 0, 1], color="black", linewidth=4)
-    # plt.plot(trapped_outter_contour[:, 0, 0], trapped_outter_contour[:, 0, 1], color="black", linewidth=4)
-    # # 闭合内外轮廓曲线
-    # # 闭合轮廓下部（脊椎骨处）
-    # plt.plot([left_chest_near_sternum[0], bottom_sternum_point[0], right_chest_near_sternum[0]],
-    #         [left_chest_near_sternum[1], bottom_sternum_point[1], right_chest_near_sternum[1]],
-    #         color="black", 
-    #         linewidth=4
-    # )
     plt.plot(inner_contour_all_in_one[:, 0, 0], inner_contour_all_in_one[:, 0, 1], color="black", linewidth=4)
-
-
-    # # 画上胸骨
-    # plt.scatter(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", linewidth=1)
-
-    # # 画脊椎骨
-    # plt.scatter(vertebra_contour[:, 0, 0], vertebra_contour[:, 0, 1], color="black", linewidth=1)
 
     # 画左右连线
     y = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
@@ -645,11 +628,6 @@ def diagnosis(dicom_file, saved_path=None):
     plt.plot([x, x], [yt, yb], color="cyan", linewidth=2)
 
     plt.text(24, out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10, color="white")
-
-    # for c in rib_contours:
-    #     plt.scatter(c[:, 0, 0], c[:, 0, 1], color="yellow", linewidth=1)
-
-
 
     plt.legend()
 
