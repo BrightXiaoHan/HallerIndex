@@ -605,13 +605,13 @@ def diagnosis(dicom_file, saved_path=None):
     # 画胸廓拟合点集
     plt.axis('equal')
     # 画外轮廓
-    plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=4)
+    plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=2)
 
     # 画内轮廓
     inner_contour_all_in_one = np.concatenate([inner_contours[0], inner_contours[1], trapped_outter_contour])
     inner_contour_all_in_one = refine_contour(inner_contour_all_in_one, img.shape)
 
-    plt.plot(inner_contour_all_in_one[:, 0, 0], inner_contour_all_in_one[:, 0, 1], color="black", linewidth=4)
+    plt.plot(inner_contour_all_in_one[:, 0, 0], inner_contour_all_in_one[:, 0, 1], color="black", linewidth=2)
 
     # 画左右连线
     y = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
