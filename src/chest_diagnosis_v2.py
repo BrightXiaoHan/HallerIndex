@@ -537,7 +537,8 @@ def diagnosis(dicom_file, saved_path=None):
         raise SternumVertebraNotFoundException("请检查您的图像是否符合要求，自动检测无法找找到胸骨。")
     
     # 外胸廓凹陷点向下作为胸肋骨点
-    tmp_points = np.array([mid_bottom[0], mid_bottom[1] + 10])
+    trapped_outter_contour = trap_contour(out_contour, img.shape)
+    tmp_points = find_boundary_point(filter_contour_points(trapped_outter_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
 
     # 将上下胸骨的轮廓合并
     vertebra_contour = np.expand_dims(np.expand_dims(tmp_points, 0), 0)
@@ -588,7 +589,6 @@ def diagnosis(dicom_file, saved_path=None):
                                               mode="drop")
     inner_contours[1], _ = sort_clockwise(inner_contours[1], demarcation=135)
 
-    trapped_outter_contour = trap_contour(out_contour, img.shape)
     trapped_outter_contour = filter_contour_points(trapped_outter_contour,
                                                    y_max=y_mid,
                                                    mode="keep")
@@ -620,8 +620,8 @@ def diagnosis(dicom_file, saved_path=None):
     
     plt.plot([xl, xr], [y, y], color="magenta", linewidth=2)
 
-    x = bottom_sternum_point[0]
-    yt = top_vertebra_point[1] + 10
+    x = (bottom_sternum_point[0] + top_vertebra_point[0]) / 2
+    yt = top_vertebra_point[1]
     yb = bottom_sternum_point[1]
 
     # 画e 
