@@ -1,4 +1,3 @@
-import io
 import os
 import tornado
 import json
@@ -7,7 +6,7 @@ import numpy as np
 
 from tornado.web import RequestHandler, Application
 from src import diagnosis_v2, depression_degree, is_avaliable
-from src.utils import image_to_base64
+from src.utils import image_to_base64, wrap_dicom_buffer, concatenate_images
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -46,29 +45,32 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
         avaliable_files = []
 
         for file_content in files:
-            reader = io.BufferedReader(io.BytesIO(file_content))
-            reader.raw.name = "tmp_name"
-
             # 过滤不符合条件的照片
-            if is_avaliable(reader):
-                reader = io.BufferedReader(io.BytesIO(file_content))
-                reader.raw.name = "tmp_name"
-                degrees.append(depression_degree(reader))
+            if is_avaliable(wrap_dicom_buffer(file_content)):
+                degrees.append(depression_degree(wrap_dicom_buffer(file_content)))
                 avaliable_files.append(file_content)
 
         degrees = np.array(degrees)
-        index = np.argmax(degrees)
-        f = avaliable_files[index]
+        indexes = np.argsort(degrees)
+        if len(indexes) >= 4:
+            indexes = indexes[-4:]
+        
+        files = [avaliable_files[i] for i in indexes]
 
-        reader = io.BufferedReader(io.BytesIO(f))
-        reader.raw.name = "tmp_name"
-
-        haller, figure = diagnosis_v2(reader)
+        figure_set = []
+        haller_set = []
+        for f in files:
+            try:
+                haller, figure = diagnosis_v2(wrap_dicom_buffer(f))
+            except Exception:
+                continue
+            figure_set.append(figure)
+            haller_set.append(haller)
 
         data = {
-            "haller": haller
+            "haller": haller_set
         }
-        return data, figure
+        return data, concatenate_images(figure_set, mode="vertical")
 
 class IndexHandler(RequestHandler):
 

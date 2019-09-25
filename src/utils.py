@@ -1,3 +1,4 @@
+import io
 import numpy
 import base64
 from PIL import Image
@@ -63,3 +64,51 @@ def dilate(img):
     # 执行膨胀
     dst = cv2.dilate(binary, kernel)
     return dst
+
+def wrap_dicom_buffer(buffer, name="tmp_name"):
+    """包装网络传输的二进制文件流，供dicom包读取
+    
+    Args:
+        buffer (byte): 二进制文件流
+    """
+    reader = io.BufferedReader(io.BytesIO(buffer))
+    reader.raw.name = name
+    return reader
+
+
+def concatenate_images(images, mode="horizontal"):
+    """拼接图像
+    
+    Args:
+        images (list): 待拼接的图像列表。PIL.Image
+        mode (str, optional): 拼接模式。"horizontal": 横向拼接， "vertical": 纵向拼接。 Defaults to "horizontal".
+    
+    Returns:
+        PIL.Image: 拼接结果
+    """
+    widths, heights = zip(*(i.size for i in images))
+
+    if mode == "horizontal":
+        total_width = sum(widths)
+        max_height = max(heights)
+    elif mode == "vertical":
+        total_width = max(widths)
+        max_height = sum(heights)
+    else:
+        raise AttributeError("Parameter mode must be one of 'horizontal' and 'vertical'.")
+    
+    new_im = Image.new('RGB', (total_width, max_height))
+
+    offset = 0
+    for im in images:
+        if mode == "horizontal":
+            new_im.paste(im, (offset,0))
+            offset += im.size[0]
+        elif mode == "vertical":
+            new_im.paste(im, (0, offset))
+            offset += im.size[1]
+        else:
+            raise AttributeError("Parameter mode must be one of 'horizontal' and 'vertical'.")
+
+    return new_im
+
