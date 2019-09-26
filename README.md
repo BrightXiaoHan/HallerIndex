@@ -50,3 +50,8 @@ function postData(files){
     })
 }
 ```
+
+## 效果展示
+使用本项目Haller指数检测结果如图所示
+
+![效果图](src/assets/images/result.png)
