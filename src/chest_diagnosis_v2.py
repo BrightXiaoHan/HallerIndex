@@ -297,7 +297,6 @@ def refine_contour(contour, img_shape):
         [type]: [description]
     """
     img = np.ones(shape=img_shape, dtype="uint8") * 255
-    cv2.drawContours(img, [contour], -1, (0, 0, 0), 4)
     cv2.drawContours(img, [contour], -1, (0, 0, 0), -1)
 
     _, contours, hierarchy = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -605,14 +604,8 @@ def diagnosis(dicom_file, saved_path=None):
     # 画胸廓拟合点集
     plt.axis('equal')
     # 画外轮廓
-    plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=2)
-
-    # 画内轮廓
-    inner_contour_all_in_one = np.concatenate([inner_contours[0], inner_contours[1], trapped_outter_contour])
-    inner_contour_all_in_one = refine_contour(inner_contour_all_in_one, img.shape)
-
-    plt.plot(inner_contour_all_in_one[:, 0, 0], inner_contour_all_in_one[:, 0, 1], color="black", linewidth=2)
-
+    # plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=2)
+    
     # 画左右连线
     y = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
     xl = left_chest_leftmost[0]
@@ -626,6 +619,47 @@ def diagnosis(dicom_file, saved_path=None):
 
     # 画e 
     plt.plot([x, x], [yt, yb], color="cyan", linewidth=2)
+
+    # 画内轮廓
+    inner_contour_all_in_one = np.concatenate([inner_contours[0], inner_contours[1], trapped_outter_contour])
+    inner_contour_all_in_one = refine_contour(inner_contour_all_in_one, img.shape)
+
+    hull=cv2.convexHull(inner_contour_all_in_one,returnPoints=True)
+    left_hull, _ = sort_clockwise(filter_contour_points(hull, x_max=mid_bottom[0]), demarcation=0, anti=False)
+    left_hull_bottom_point = find_boundary_point(left_hull, position="bottom")
+    right_hull, _ = sort_clockwise(filter_contour_points(hull, x_min=mid_bottom[0]), demarcation=180, anti=False)
+    right_hull_bottom_point = find_boundary_point(right_hull, position="bottom")
+    plt.plot(left_hull[:, 0, 0], left_hull[:, 0, 1], color="black", linewidth=2)
+    plt.plot(right_hull[:, 0, 0], right_hull[:, 0, 1], color="black", linewidth=2)
+
+    plt.plot(trapped_outter_contour[:, 0, 0], trapped_outter_contour[:, 0, 1], color="black", linewidth=2)
+
+    sternum_contour = filter_contour_points(sternum_contour, y_min=bottom_sternum_point[1], y_max=bottom_sternum_point[1] + 25)
+    sternum_contour, _ = sort_clockwise(sternum_contour, demarcation=270)
+    sternum_contour_left_most = find_boundary_point(sternum_contour, position="left")
+    sternum_contour_right_most = find_boundary_point(sternum_contour, position="right")
+    # plt.plot(sternum_contour[:, 0, 0], sternum_contour[:, 0, 1], color="black", linewidth=2)
+
+    left_bottom_inner_contour = filter_contour_points(inner_contours[0], 
+                                                      x_min=left_hull_bottom_point[0],
+                                                      x_max=sternum_contour_left_most[0],
+                                                      y_min=sternum_contour_left_most[1],
+                                                      )
+    # plt.plot(left_bottom_inner_contour[:, 0, 0], left_bottom_inner_contour[:, 0, 1], color="black", linewidth=2)
+
+    right_bottom_inner_contour = filter_contour_points(inner_contours[1], 
+                                                      x_min=sternum_contour_right_most[0],
+                                                      x_max=right_hull_bottom_point[0],
+                                                      y_min=sternum_contour_left_most[1],
+                                                      )
+    # plt.plot(right_bottom_inner_contour[:, 0, 0], right_bottom_inner_contour[:, 0, 1], color="black", linewidth=2)
+
+    left_bottom_inner_contour, _ = sort_clockwise(left_bottom_inner_contour, demarcation=90, anti=False)
+    sternum_contour, _ = sort_clockwise(sternum_contour, demarcation=270)
+    right_bottom_inner_contour, _ = sort_clockwise(right_bottom_inner_contour, demarcation=0, anti=False)
+    bottom_inner_contour_all_in_one = np.concatenate([left_bottom_inner_contour, sternum_contour, right_bottom_inner_contour])
+    plt.plot(bottom_inner_contour_all_in_one[:, 0, 0], bottom_inner_contour_all_in_one[:, 0, 1], color="black", linewidth=2)
+
 
     plt.text(24, out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10, color="white")
 
