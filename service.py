@@ -47,7 +47,10 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
         for file_content in files:
             # 过滤不符合条件的照片
             if is_avaliable(wrap_dicom_buffer(file_content)):
-                degrees.append(depression_degree(wrap_dicom_buffer(file_content)))
+                try:
+                    degrees.append(diagnosis_v2(wrap_dicom_buffer(file_content), plot=False))
+                except:
+                    continue
                 avaliable_files.append(file_content)
 
         degrees = np.array(degrees)
@@ -56,6 +59,7 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
             indexes = indexes[-4:]
         
         files = [avaliable_files[i] for i in indexes]
+        files.reverse()
 
         figure_set = []
         haller_set = []

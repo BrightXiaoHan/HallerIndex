@@ -405,18 +405,19 @@ def depression_degree(dicom_file):
     return distance
 
 
-def diagnosis(dicom_file, saved_path=None):
+def diagnosis(dicom_file, plot=True, saved_path=None):
     """计算给定胸部横切照片的Haller指数
     
     Args:
         dicom_file (str): 胸部横切dicom文件
+        plot (bool): 是否在原图上绘制辅助线
         saved_path (str, optional): 辅助线照片输出路径. Defaults to None.
     
     Raises:
         SternumVertebraNotFoundException: [description]
     
     Returns:
-        tuple: haller_index (Haller指数), figure_image(带辅助线的照片)
+        tuple: haller_index (Haller指数), figure_image(带辅助线的照片) 注：如果plot为Fasle, 将只返回Haller指数
     """
     # ------------------------------------------------------------------------- #
     #        读取dicom文件中的像素数据                                             
@@ -553,6 +554,8 @@ def diagnosis(dicom_file, saved_path=None):
     b = bottom_sternum_point[1] - top_vertebra_point[1]
     haller_index = a / b
 
+    if not plot:
+        return haller_index
 
     # ------------------------------------------------------------------------- #
     #        闭合内胸廓，过滤不需要的点                                 
