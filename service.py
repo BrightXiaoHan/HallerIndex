@@ -5,8 +5,8 @@ import json
 import numpy as np
 
 from tornado.web import RequestHandler, Application
-from src import diagnosis_v2, depression_degree, is_avaliable
-from src.utils import image_to_base64, wrap_dicom_buffer, concatenate_images
+from src import diagnosis_v2, depression_degree, is_avaliable, diagnosis_files
+from src.utils import image_to_base64, concatenate_images
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -41,35 +41,7 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
 
     def on_process_file(self, files):
 
-        degrees = []
-        avaliable_files = []
-
-        for file_content in files:
-            # # 过滤不符合条件的照片
-            # if is_avaliable(wrap_dicom_buffer(file_content)):
-            try:
-                degrees.append(diagnosis_v2(wrap_dicom_buffer(file_content), plot=False))
-            except:
-                continue
-            avaliable_files.append(file_content)
-
-        degrees = np.array(degrees)
-        indexes = np.argsort(degrees)
-        if len(indexes) >= 4:
-            indexes = indexes[-4:]
-        
-        files = [avaliable_files[i] for i in indexes]
-        files.reverse()
-
-        figure_set = []
-        haller_set = []
-        for f in files:
-            try:
-                haller, figure = diagnosis_v2(wrap_dicom_buffer(f))
-            except Exception:
-                continue
-            figure_set.append(figure)
-            haller_set.append(haller)
+        figure_set, haller_set = diagnosis_files(files)
 
         data = {
             "haller": haller_set
