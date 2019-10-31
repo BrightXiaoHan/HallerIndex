@@ -169,11 +169,27 @@ a:focus {
 	color: #4b0f31;
 }
 
-.box {
-	/*background-color: #dfc8ca;*/
-	/*padding: 6.25rem 1.25rem;*/
-	width:8.5rem;
-	text-align:center;
+.box, .box2{
+	height:72px;
+}
+
+.speed_box {
+	width: 20rem;
+	height: 22px;
+	/*display: none;*/
+	border: 1px solid #d3c0c2;
+	border-radius: 10px;
+	overflow: hidden;
+	margin-top:8px;
+}		
+#speed {
+	width: 0;
+	height: 100%;
+	background: #dfc8ca;
+	color: #d3394c;
+	text-align: center;
+	line-height: 20px;
+	font-size: 16px;
 }
 .box2 .file-tip{
 	margin-left:2rem;

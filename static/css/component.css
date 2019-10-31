@@ -96,6 +96,8 @@
     background-color: #dfc8ca;
     padding: 3px 0;
   	border-radius: 20px;
+  	width: 8.5rem;
+    text-align: center;
 }
 
 .inputfile-4:focus + label,
