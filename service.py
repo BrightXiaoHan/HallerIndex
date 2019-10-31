@@ -45,13 +45,13 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
         avaliable_files = []
 
         for file_content in files:
-            # 过滤不符合条件的照片
-            if is_avaliable(wrap_dicom_buffer(file_content)):
-                try:
-                    degrees.append(diagnosis_v2(wrap_dicom_buffer(file_content), plot=False))
-                except:
-                    continue
-                avaliable_files.append(file_content)
+            # # 过滤不符合条件的照片
+            # if is_avaliable(wrap_dicom_buffer(file_content)):
+            try:
+                degrees.append(diagnosis_v2(wrap_dicom_buffer(file_content), plot=False))
+            except:
+                continue
+            avaliable_files.append(file_content)
 
         degrees = np.array(degrees)
         indexes = np.argsort(degrees)
