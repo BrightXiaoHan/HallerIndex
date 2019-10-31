@@ -32,14 +32,14 @@ def diagnosis_files(files, top=3):
     degrees = []
     avaliable_files = []
 
-    for file_content in files:
+    for f in files:
         try:
-            f = wrap_dicom_buffer(file_content) if isinstance(file_content, bytes) else f 
+            f = wrap_dicom_buffer(f) if isinstance(f, bytes) else f 
             degrees.append(diagnosis_v2(f, plot=False)[0])
         except Exception as e:
             # print(e)
             continue
-        avaliable_files.append(file_content)
+        avaliable_files.append(f)
 
     degrees = np.array(degrees)
     indexes = np.argsort(degrees)
@@ -53,7 +53,7 @@ def diagnosis_files(files, top=3):
     haller_set = []
     for f in files:
         try:
-            f = wrap_dicom_buffer(f) if not isinstance(file_content, str) else f
+            f = wrap_dicom_buffer(f) if not isinstance(f, str) else f
             haller, figure = diagnosis_v2(f)
         except Exception as e:
             # print(e)
