@@ -555,7 +555,14 @@ def diagnosis(dicom_file, plot=True, saved_path=None):
     haller_index = a / b
 
     if not plot:
-        return haller_index
+        fig = plt.figure(figsize=(8, 6))
+        plt.imshow(img * 20)
+        figure_image = fig2img(fig)
+    
+        # 如果需要绘制相应的分析图像，输出到指定文件
+        if saved_path is not None:
+            plt.savefig(saved_path)
+        return haller_index, figure_image
 
     # ------------------------------------------------------------------------- #
     #        闭合内胸廓，过滤不需要的点                                 
