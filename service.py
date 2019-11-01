@@ -41,7 +41,7 @@ class DiagnosisHandlerV2(_BaseDiagnosisiHandler):
 
     def on_process_file(self, files):
 
-        figure_set, haller_set = diagnosis_files(files)
+        figure_set, haller_set = diagnosis_files(files, top=1)
 
         data = {
             "haller": haller_set
