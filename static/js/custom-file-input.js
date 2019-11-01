@@ -77,6 +77,7 @@ function postData(files){
 
 	//点击返回按钮
 	$("#file-revert").on('click',function(){
+		$("#speed").text("0%").css("width", "0%");;
 		$(".box2").attr("hidden","hidden").siblings().removeAttr("hidden");
 		$("#dicom_result").attr("src","");
 	})
