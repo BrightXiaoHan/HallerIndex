@@ -16,7 +16,7 @@ def diagnosis_folder(folder, top=3):
         list: int list (Haller指数)
     """
     files = [os.path.join(folder, f) for f in os.listdir(folder)]
-    return diagnosis_files(files)
+    return diagnosis_files(files, top=top)
 
 
 def diagnosis_files(files, top=3):
