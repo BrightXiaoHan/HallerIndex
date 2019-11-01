@@ -541,7 +541,7 @@ def diagnosis(dicom_file, plot=True, saved_path=None):
     tmp_points = find_boundary_point(filter_contour_points(trapped_outter_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
 
     # 将上下胸骨的轮廓合并
-    vertebra_contour = np.concatenate(filter_contours(rib_contours, y_max=tmp_points[1] + 10, y_min=mid_bottom[1], mode="all"))
+    vertebra_contour = np.concatenate(filter_contours(rib_contours, y_max=tmp_points[1] + 20, y_min=mid_bottom[1], mode="all"))
     sternum_contour = np.concatenate(bottom_rib_contours)
 
     # 寻找脊椎骨最上点， 和胸骨最下点
