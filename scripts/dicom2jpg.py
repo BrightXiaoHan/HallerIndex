@@ -14,6 +14,9 @@ args = parser.parse_args()
 
 all_file = glob.glob(os.path.join(args.src_dir, "FILE*"))
 
+if not os.path.isdir(args.dest_dir):
+     os.makedirs(args.dest_dir)
+
 for f in all_file:
      # 读取dicom文件中的像素数据
     ds = pydicom.dcmread(f)
