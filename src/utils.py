@@ -69,11 +69,14 @@ def wrap_dicom_buffer(buffer, name="tmp_name"):
     """包装网络传输的二进制文件流，供dicom包读取
     
     Args:
-        buffer (byte): 二进制文件流
+        buffer (byte): 二进制文件流。如果是文件路径则直接返回
     """
-    reader = io.BufferedReader(io.BytesIO(buffer))
-    reader.raw.name = name
-    return reader
+    if isinstance(buffer, bytes):
+        reader = io.BufferedReader(io.BytesIO(buffer))
+        reader.raw.name = name
+        return reader
+    else:
+        return buffer
 
 
 def concatenate_images(images, mode="horizontal"):
