@@ -5,7 +5,7 @@ import os
 import numpy as np
 from .utils import wrap_dicom_buffer
 
-def diagnosis_folder(folder, top=3):
+def diagnosis_folder(folder, **kwargs):
     """诊断一个病人所有的ct照片
     
     Args:
@@ -16,10 +16,10 @@ def diagnosis_folder(folder, top=3):
         list: int list (Haller指数)
     """
     files = [os.path.join(folder, f) for f in os.listdir(folder)]
-    return diagnosis_files(files, top=top)
+    return diagnosis_files(files, **kwargs)
 
 
-def diagnosis_files(files, top=3):
+def diagnosis_files(files, top=3, _return_files=False):
     """诊断一个病人所有的ct照片
     
     Args:
@@ -44,14 +44,16 @@ def diagnosis_files(files, top=3):
 
     degrees = np.array(degrees)
     indexes = np.argsort(degrees)
-    if len(indexes) >= top:
-        indexes = indexes[-top:]
+    if top > 0:
+        if len(indexes) >= top:
+            indexes = indexes[-top:]
     
     files = [avaliable_files[i] for i in indexes]
     files.reverse()
 
     figure_set = []
     haller_set = []
+    files_set = []
     for f in files:
         try:
             f = wrap_dicom_buffer(f) if not isinstance(f, str) else f
@@ -61,8 +63,12 @@ def diagnosis_files(files, top=3):
             continue
         figure_set.append(figure)
         haller_set.append(haller)
+        files_set.append(f)
 
-    return figure_set, haller_set
+    if not _return_files:
+        return figure_set, haller_set
+    else:
+        return figure_set, haller_set, files_set
 
 
 __all__ = ["diagnosis_v2", "depression_degree", "is_avaliable", "diagnosis_files"]
