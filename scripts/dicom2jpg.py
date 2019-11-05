@@ -18,7 +18,11 @@ if not os.path.isdir(args.dest_dir):
      os.makedirs(args.dest_dir)
 
 for f in all_file:
-     # 读取dicom文件中的像素数据
-    ds = pydicom.dcmread(f)
+	# 读取dicom文件中的像素数据
+    try:
+        ds = pydicom.dcmread(f)
+    except pydicom.errors.InvalidDicomError as e:
+        continue
+
     img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
     cv2.imwrite(os.path.join(args.dest_dir, os.path.basename(f) + ".jpg"), img * 20)
