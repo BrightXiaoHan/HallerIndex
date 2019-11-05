@@ -1,5 +1,5 @@
 .vscode
 .cache
-data/
+data
 __pycache__
 *.pyc
