@@ -33,14 +33,14 @@ def diagnosis_files(files, top=3):
     avaliable_files = []
 
     for f in files:
-        tmp = f
         try:
-            f = wrap_dicom_buffer(f) if isinstance(f, bytes) else f 
-            degrees.append(diagnosis_v2(f, plot=False)[0])
+            fake_file = wrap_dicom_buffer(f)
+            if is_avaliable(fake_file):
+                degree = depression_degree(fake_file)
+                degrees.append(degree)
+                avaliable_files.append(f)
         except Exception as e:
-            # print(e)
-            continue
-        avaliable_files.append(tmp)
+            continue     
 
     degrees = np.array(degrees)
     indexes = np.argsort(degrees)
