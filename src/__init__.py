@@ -1,9 +1,8 @@
-from .chest_diagnosis_v2 import diagnosis as diagnosis_v2
-from .chest_diagnosis_v2 import depression_degree, is_avaliable
-
 import os
 import numpy as np
+
 from .utils import wrap_dicom_buffer
+from .chest_diagnosis import diagnosis, degree_of_depression
 
 def diagnosis_folder(folder, **kwargs):
     """诊断一个病人所有的ct照片
@@ -30,25 +29,14 @@ def diagnosis_files(files, top=3, _return_files=False):
         list: int list (Haller指数)
     """
     degrees = []
-    avaliable_files = []
 
-    for f in files:
-        try:
-            fake_file = wrap_dicom_buffer(f)
-            if is_avaliable(fake_file):
-                degree = depression_degree(fake_file)
-                degrees.append(degree)
-                avaliable_files.append(f)
-        except Exception as e:
-            continue     
-
-    degrees = np.array(degrees)
+    degrees = np.array([degree_of_depression(f) for f in files])
     indexes = np.argsort(degrees)
     if top > 0:
         if len(indexes) >= top:
             indexes = indexes[-top:]
     
-    files = [avaliable_files[i] for i in indexes]
+    files = [files[i] for i in indexes]
     files.reverse()
 
     figure_set = []
@@ -57,9 +45,8 @@ def diagnosis_files(files, top=3, _return_files=False):
     for f in files:
         try:
             f = wrap_dicom_buffer(f) if not isinstance(f, str) else f
-            haller, figure = diagnosis_v2(f)
+            haller, figure = diagnosis(f)
         except Exception as e:
-            print(e)
             continue
         figure_set.append(figure)
         haller_set.append(haller)
