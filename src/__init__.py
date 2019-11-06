@@ -30,7 +30,7 @@ def diagnosis_files(files, top=3, _return_files=False):
     """
     degrees = []
 
-    degrees = np.array([degree_of_depression(f) for f in files])
+    degrees = np.array([degree_of_depression(wrap_dicom_buffer(f)) for f in files])
     indexes = np.argsort(degrees)
     if top > 0:
         if len(indexes) >= top:
