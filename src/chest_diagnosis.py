@@ -62,7 +62,7 @@ def degree_of_depression(dicom_file):
         return 0
     
     # 规则4 轮廓的宽大于高
-    if bottom_most[1] - mid_bottom[1] > right_most[0] - left_most[0]:
+    if bottom_most[1] - min(left_top[1], right_top[1]) > right_most[0] - left_most[0]:
         return 0
 
     # 规则5 轮廓中最左最右侧点与左右最高点的距离过小
@@ -206,7 +206,12 @@ def diagnosis(dicom_file, plot=True):
     tmp_points = find_boundary_point(filter_contour_points(trapped_outter_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
 
     # 将上下胸骨的轮廓合并
-    vertebra_contour = np.concatenate(filter_contours(rib_contours, y_max=tmp_points[1] + 20, y_min=mid_bottom[1], mode="exist"))
+    vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 20, y_min=mid_bottom[1], mode="exist")
+    if len(vertebra_contour) > 0: # 如果找到脊椎骨点, 则使用，否则使用下陷的点进行替代 
+        vertebra_contour = np.concatenate(vertebra_contour)
+    else:
+        tmp_points[1] += 5
+        vertebra_contour = tmp_points.reshape(1, 1, -1)
     sternum_contour = np.concatenate(bottom_rib_contours)
 
     # 寻找脊椎骨最上点， 和胸骨最下点
