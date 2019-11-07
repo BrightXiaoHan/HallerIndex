@@ -62,10 +62,10 @@ def degree_of_depression(dicom_file):
         return 0
     
     # 规则4 轮廓的宽大于高
-    if bottom_most[1] - mid_bottom[1] > right_most[1] - left_most[1]:
+    if bottom_most[1] - mid_bottom[1] > right_most[0] - left_most[0]:
         return 0
 
-    # 规则4 轮廓中最左最右侧点与左右最高点的距离过小
+    # 规则5 轮廓中最左最右侧点与左右最高点的距离过小
     left_top_most_distance = left_top[0] - left_most[0]
     right_top_most_distance = right_most[0] - right_top[0]
     if left_x_distance / left_top_most_distance > 2 or right_x_distance / right_top_most_distance > 2:
