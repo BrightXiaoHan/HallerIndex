@@ -21,24 +21,22 @@ def degree_of_depression(dicom_file):
     except:
         return 0
 
-
-    contours = sorted(contours, key=lambda x: len(x))
-    out_contour, out_contour_area = find_outer_contour(contours)
-
-    out_contour, (cx, cy) = sort_clockwise(out_contour)
-
-    left_top = find_boundary_point(filter_contour_points(out_contour,  x_max=cx, y_max=cy), position="top")
-    right_top = find_boundary_point(filter_contour_points(out_contour, x_min=cx, y_max=cy), position="top")
-
-    left_most = find_boundary_point(out_contour, position="left")
-    right_most = find_boundary_point(out_contour, position="right")
-
-    bottom_most = find_boundary_point(out_contour, position="bottom")
-
-    # 没有找到中间最凹陷点，为不可用图像
+    # 没有找到对应的最凹陷点，为不可用图像
     try:
+        contours = sorted(contours, key=lambda x: len(x))
+        out_contour, out_contour_area = find_outer_contour(contours)
+
+        out_contour, (cx, cy) = sort_clockwise(out_contour)
+
+        left_top = find_boundary_point(filter_contour_points(out_contour,  x_max=cx, y_max=cy), position="top")
+        right_top = find_boundary_point(filter_contour_points(out_contour, x_min=cx, y_max=cy), position="top")
+
+        left_most = find_boundary_point(out_contour, position="left")
+        right_most = find_boundary_point(out_contour, position="right")
+
+        bottom_most = find_boundary_point(out_contour, position="bottom")
         mid_bottom = find_boundary_point(filter_contour_points(out_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
-    except ValueError as e:
+    except Exception as e:
         return 0
 
     left_x_distance = mid_bottom[0] - left_top[0]
@@ -122,6 +120,9 @@ def diagnosis(dicom_file, plot=True):
     out_contour_bottom = find_boundary_point(out_contour, "bottom")
     out_contour_top = find_boundary_point(out_contour, "top")
 
+    # 过滤所有再外轮廓最低点之下的轮廓
+    contours = filter_contours(contours, y_max=out_contour_bottom[1] + 1, mode="all")
+
     # ------------------------------------------------------------------------- #
     #        找内胸腔轮廓及其关键点                                           
     # ------------------------------------------------------------------------- #
@@ -187,30 +188,32 @@ def diagnosis(dicom_file, plot=True):
         inner_contours[0], position="right")
     right_chest_leftmost = find_boundary_point(
         inner_contours[1], position="left")
+    
+    # 过滤掉胸骨中，点过少的轮廓点
+    rib_contours = [i for i in rib_contours if len(i) > 10]
 
     rib_contours = filter_contours(
-        rib_contours, x_min=lowest_1[0], x_max=lowest_2[0], mode='all') 
+        rib_contours, x_min=lowest_1[0], x_max=lowest_2[0], mode='exist') 
 
     # 取左右最外侧点的中点为上下胸分界点
-    demarcation_point = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2 - 20  # 由于有的胸骨轮廓会超过中点线， 所以此处以重点线上方10像素为分界点
+    demarcation_point = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2  # 由于有的胸骨轮廓会超过中点线， 所以此处以重点线上方10像素为分界点
 
     # 以此分界点为接线，将胸骨分为上下两个部分
-    bottom_rib_contours = filter_contours(rib_contours, y_min=demarcation_point, y_max=out_contour_bottom[1], x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="all")
+    bottom_rib_contours = filter_contours(rib_contours, y_min=demarcation_point, y_max=out_contour_bottom[1], x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="exist")
 
     # # 下胸骨选轮廓集合的top3
     # if len(bottom_rib_contours) >= 3:
     #     bottom_rib_contours = bottom_rib_contours[-3:]
 
     # 外胸廓凹陷点向下作为胸肋骨点
-    trapped_outter_contour = trap_contour(out_contour, img.shape)
-    tmp_points = find_boundary_point(filter_contour_points(trapped_outter_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
+    tmp_points = mid_bottom
 
     # 将上下胸骨的轮廓合并
     vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 20, y_min=mid_bottom[1], mode="exist")
     if len(vertebra_contour) > 0: # 如果找到脊椎骨点, 则使用，否则使用下陷的点进行替代 
         vertebra_contour = np.concatenate(vertebra_contour)
     else:
-        tmp_points[1] += 5
+        tmp_points[1] += 20
         vertebra_contour = tmp_points.reshape(1, 1, -1)
     sternum_contour = np.concatenate(bottom_rib_contours)
 
@@ -219,11 +222,11 @@ def diagnosis(dicom_file, plot=True):
     bottom_sternum_point = find_boundary_point(sternum_contour, "top")
 
     # 寻找环绕胸骨的最左侧点和最右侧点
-    rib_contours_all_in_one = filter_contour_points(trapped_outter_contour, y_min=top_vertebra_point[1], y_max=bottom_sternum_point[1])
+    rib_contours_all_in_one = filter_contour_points(rib_contours_all_in_one, y_min=top_vertebra_point[1], y_max=bottom_sternum_point[1])
     left_rib_point = find_boundary_point(rib_contours_all_in_one, "left")
-    left_rib_point[0] = left_rib_point[0] + 15
+    left_rib_point[0] = left_rib_point[0] + 10
     right_rib_point = find_boundary_point(rib_contours_all_in_one, "right")
-    right_rib_point[0] = right_rib_point[0] - 15
+    right_rib_point[0] = right_rib_point[0] - 10
     # ------------------------------------------------------------------------- #
     #        计算b，即内胸廓凹陷点与脊椎骨上侧点的连线                                 
     # ------------------------------------------------------------------------- #    
@@ -272,7 +275,7 @@ def diagnosis(dicom_file, plot=True):
 
     plt.text(24, out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10, color="white")
 
-    plt.legend()
+    # plt.legend()
 
     figure_image = fig2img(fig)
 

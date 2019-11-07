@@ -25,7 +25,8 @@ def diagnosis_folder(folder, **kwargs):
 
 
 def diagnosis_files(files, top=3, _return_files=False):
-    """诊断一个病人所有的ct照片
+    """诊断一个病人所有的ct照片，
+    注：默认文件是按顺序排列的 即 FILE1 FILE2 FILE3 ...
     
     Args:
         files (list): 列表的每个元素为文件路径或者二进制buffer
@@ -40,6 +41,21 @@ def diagnosis_files(files, top=3, _return_files=False):
     
     if degrees.max() <= 0:
         raise AvaliableDicomNotFoundException()
+
+    # 找连续可用的照片
+    start, end = 0, 0
+    start_, end_ = 0, 0
+    for i ,(f, d) in enumerate(zip(files, degrees)):
+        if d > 0:
+            end +=1
+        else:
+            if end - start > end_ - start_:
+                start_, end_ = start, end
+            start = i
+            end = i
+    if end_ - start_ > 5:
+        degrees = degrees[start_: end_]
+        files = files[start_: end_]
 
     indexes = np.argsort(degrees)
     if top > 0:

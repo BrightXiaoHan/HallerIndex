@@ -19,16 +19,21 @@ parser.add_argument("top", type=int, default=3, help="输出结果的top几")
 
 args = parser.parse_args()
 
-
+error_list = []
 # 计算Haller指数，画辅助线
 for folder in tqdm(list(os.walk(args.src_dir))[0][1]):
     if not os.path.isdir(os.path.join(args.dest_dir, folder)):
         os.makedirs(os.path.join(args.dest_dir, folder))
-    figures, indexes = diagnosis_folder(os.path.join(args.src_dir, folder), top=args.top)
+    try:
+        figures, indexes = diagnosis_folder(os.path.join(args.src_dir, folder), top=args.top)
+    except Exception as e:
+        error_list.append(folder)
+        continue
     for i, (figure, index) in enumerate(zip(figures, indexes)):
         figure.save(os.path.join(args.dest_dir, folder, "result_%d.png" % i))
         with open(os.path.join(args.dest_dir, folder, "haller_%d.txt" % i), 'w') as f:
             f.write("Haller 指数值： %f" % index)
 
-
+for i in error_list:
+    print("%s error." % i)
 
