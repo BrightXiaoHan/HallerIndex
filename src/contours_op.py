@@ -23,7 +23,7 @@ def find_inner_contour(contours, outline_area):
 
     for contour in contours:
         area = cv2.contourArea(contour)
-        if area / outline_area > 0.01 and area / outline_area < 0.5:
+        if area / outline_area > 0.03 and area / outline_area < 0.5:
             all_eligible_contour.append(contour)
 
     if len(all_eligible_contour) < 2:

@@ -4,6 +4,11 @@ import numpy as np
 from .utils import wrap_dicom_buffer
 from .chest_diagnosis import diagnosis, degree_of_depression
 
+class AvaliableDicomNotFoundException(Exception):
+    
+    def __init__(self):
+        super().__init__("没有找到符合条件的CT照片，请检查您上传的文件夹中是否有符合要求的横切照片。")
+
 def diagnosis_folder(folder, **kwargs):
     """诊断一个病人所有的ct照片
     
@@ -31,6 +36,10 @@ def diagnosis_files(files, top=3, _return_files=False):
     degrees = []
 
     degrees = np.array([degree_of_depression(wrap_dicom_buffer(f)) for f in files])
+    
+    if degrees.max() <= 0:
+        raise AvaliableDicomNotFoundException()
+
     indexes = np.argsort(degrees)
     if top > 0:
         if len(indexes) >= top:

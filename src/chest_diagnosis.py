@@ -10,17 +10,18 @@ def degree_of_depression(dicom_file):
     Returns:
         int: 凹陷程度值，即凹陷点到左右侧顶点连线的最大垂直距离。如果图像为不符合条件的图像，如运行错误，非横切胸片，则返回0
     """
-    ds = pydicom.read_file(dicom_file)
 
     # DicomDir等文件运行此段代码会报错，为不可用图像
     try:
+        ds = pydicom.read_file(dicom_file)
         img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
+        ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
+        _, contours, _ = cv2.findContours(
+                        binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     except:
         return 0
 
-    ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
-    _, contours, _ = cv2.findContours(
-            binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
     contours = sorted(contours, key=lambda x: len(x))
     out_contour, out_contour_area = find_outer_contour(contours)
 
@@ -31,6 +32,8 @@ def degree_of_depression(dicom_file):
 
     left_most = find_boundary_point(out_contour, position="left")
     right_most = find_boundary_point(out_contour, position="right")
+
+    bottom_most = find_boundary_point(out_contour, position="bottom")
 
     # 没有找到中间最凹陷点，为不可用图像
     try:
@@ -56,6 +59,10 @@ def degree_of_depression(dicom_file):
     
     # 规则3 底部点与中心店y轴距离过近的
     if cy - mid_bottom[1] < 10:
+        return 0
+    
+    # 规则4 轮廓的宽大于高
+    if bottom_most[1] - mid_bottom[1] > right_most[1] - left_most[1]:
         return 0
 
     # 规则4 轮廓中最左最右侧点与左右最高点的距离过小
@@ -199,7 +206,7 @@ def diagnosis(dicom_file, plot=True):
     tmp_points = find_boundary_point(filter_contour_points(trapped_outter_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
 
     # 将上下胸骨的轮廓合并
-    vertebra_contour = np.concatenate(filter_contours(rib_contours, y_max=tmp_points[1] + 20, y_min=mid_bottom[1], mode="all"))
+    vertebra_contour = np.concatenate(filter_contours(rib_contours, y_max=tmp_points[1] + 20, y_min=mid_bottom[1], mode="exist"))
     sternum_contour = np.concatenate(bottom_rib_contours)
 
     # 寻找脊椎骨最上点， 和胸骨最下点
