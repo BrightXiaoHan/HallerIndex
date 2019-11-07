@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from .utils import wrap_dicom_buffer
+from .utils import wrap_dicom_buffer, sort_files
 from .chest_diagnosis import diagnosis, degree_of_depression
 
 class AvaliableDicomNotFoundException(Exception):
@@ -20,6 +20,7 @@ def diagnosis_folder(folder, **kwargs):
         list: int list (Haller指数)
     """
     files = [os.path.join(folder, f) for f in os.listdir(folder)]
+    files = sort_files(files)
     return diagnosis_files(files, **kwargs)
 
 

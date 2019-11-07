@@ -6,7 +6,7 @@ import numpy as np
 
 from tornado.web import RequestHandler, Application
 from src import diagnosis_files
-from src.utils import image_to_base64, concatenate_images
+from src.utils import image_to_base64, concatenate_images, sort_files
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -17,11 +17,15 @@ class _BaseDiagnosisiHandler(RequestHandler):
         files = self.request.files.values()  # 提取表单中‘name’为‘file’的文件元数据
 
         all_files_content = []
+        all_files_name = []
 
         for file_meta in files:
             if file_meta:
                 all_files_content.append(file_meta[0]['body'])
+                all_files_name.append(os.path.basename(file_meta[0]["filename"]))
         
+        all_files_content = sort_files(all_files_content, all_files_name)
+
         data, figure = self.on_process_file(all_files_content)
         ret["data"] = data
         ret["figure"] = image_to_base64(figure).decode("ascii")

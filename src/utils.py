@@ -1,4 +1,5 @@
 import io
+import os
 import numpy
 import base64
 from PIL import Image
@@ -114,4 +115,32 @@ def concatenate_images(images, mode="horizontal"):
             raise AttributeError("Parameter mode must be one of 'horizontal' and 'vertical'.")
 
     return new_im
+
+def sort_files(all_files, keys=None):
+    """根据key给all_files排序。 key的格式 /path/to/FILE1
+    
+    Args:
+        all_files (list): 待排序的文件
+        keys (list, optional): 如果key为None，则默认all_files中元素为路径字符串. Defaults to None.
+    
+    Returns:
+        list: 排序后的all_files
+    """
+    if keys is None:
+        keys = all_files
+    assert len(all_files) == len(keys)
+    keys = [os.path.basename(f).replace("FILE", "") for f in keys]
+    int_keys = []
+    for key in keys:
+        try:
+            key = int(key)
+        except ValueError as e:
+            key = -1
+        int_keys.append(key)
+
+    int_keys = numpy.array(int_keys)
+    indexes = int_keys.argsort()
+
+    all_files = [all_files[i] for i in indexes]
+    return all_files
 
