@@ -20,38 +20,12 @@ http://127.0.0.1:10001/yuyi/api/chest/index.html
 python接口
 ```python
 # 基于论文二的检测方法
-from src import diagnosis_v2
-h, figure = diagnosis_v2(f)
-```
-Web api接口
-使用ajax请求 (将【your server ip 】替换为你的服务器ip地址，如果是本机则为127.0.0.1)
-```js
-function postData(files){
-	var formData = new FormData();
-	$.each(files,function(i,file){
-		formData.append('file['+i+']', file);
-	});
-    $.ajax({
-        url:'http://[your server ip]:10001/yuyi/api/chest/v2', /*接口域名地址*/
-        type:'post',
-        data: formData,
-        contentType: false,
-        processData: false,
-        success:function(res){
-            if(res["result"]=="ok"){
-				$("#dicom_result").attr('src', 'data:image/png;base64,' + res.figure);
-            }else if(res["result"]=="err"){
-                alert('失败');
-            }else{
-                console.log(res);
-			}
-			
-        }
-    })
-}
+from src import diagnosis_folder
+figure, haller_index = diagnosis_folder("/path/to/ct_dir", top=1)
+figure[0].save("HallerResult.png")
 ```
 
 ## 效果展示
 使用本项目Haller指数检测结果如图所示
 
-![效果图](src/assets/images/result.png)
+![效果图](paper/result.png)
