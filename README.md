@@ -7,6 +7,9 @@
 ```
 pip install tornado opencv-python pydicom
 ```
+### 修改服务器ip地址
+将[static/js/custom-file-input.js](static/js/custom-file-input.js)文件中ajax中的ip修改成你部署服务的服务器ip地址。如果是本地，则设置成127.0.0.1
+
 ### 启动服务
 ```
 python service.py
