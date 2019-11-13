@@ -211,7 +211,7 @@ def diagnosis(dicom_file, plot=True):
     vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 30, y_min=mid_bottom[1],  x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="exist")
     if len(vertebra_contour) > 0: # 如果找到脊椎骨点, 则使用，否则使用下陷的点进行替代 
         top_vertebra_point = find_boundary_point(np.concatenate(vertebra_contour), "bottom")
-        if top_vertebra_point[1] - mid_bottom[1] < 15:
+        if top_vertebra_point[1] - mid_bottom[1] < 10:
             tmp_points[1] += 25
             vertebra_contour = tmp_points.reshape(1, 1, -1)
         else:
