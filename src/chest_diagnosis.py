@@ -190,7 +190,7 @@ def diagnosis(dicom_file, plot=True):
         inner_contours[1], position="left")
     
     # 过滤掉胸骨中，点过少的轮廓点
-    rib_contours = [i for i in rib_contours if len(i) > 10]
+    rib_contours = [i for i in rib_contours if len(i) > 15]
 
     rib_contours = filter_contours(
         rib_contours, x_min=lowest_1[0], x_max=lowest_2[0], mode='exist') 
@@ -209,13 +209,15 @@ def diagnosis(dicom_file, plot=True):
     tmp_points = mid_bottom
 
     # 将上下胸骨的轮廓合并
-    vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 20, y_min=mid_bottom[1], mode="exist")
+    vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 30, y_min=mid_bottom[1],  x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="exist")
     if len(vertebra_contour) > 0: # 如果找到脊椎骨点, 则使用，否则使用下陷的点进行替代 
         vertebra_contour = np.concatenate(vertebra_contour)
     else:
-        tmp_points[1] += 20
+        tmp_points[1] += 25
         vertebra_contour = tmp_points.reshape(1, 1, -1)
     sternum_contour = np.concatenate(bottom_rib_contours)
+    sternum_contour = filter_contour_points(sternum_contour, y_min=demarcation_point, y_max=out_contour_bottom[1], x_min=left_top[0], x_max=right_top[0])
+
 
     # 寻找脊椎骨最上点， 和胸骨最下点
     top_vertebra_point = find_boundary_point(vertebra_contour, "bottom")
@@ -250,7 +252,7 @@ def diagnosis(dicom_file, plot=True):
     #       绘制辅助线                                  
     # ------------------------------------------------------------------------- #
     fig = plt.figure(figsize=(8, 6))
-    plt.imshow(origin_img)
+    plt.imshow(origin_img, cmap=plt.cm.gray)
 
     # 画出拟合曲线和原始点集
     # 画胸廓拟合点集
