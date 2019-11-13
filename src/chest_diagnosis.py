@@ -90,7 +90,6 @@ def diagnosis(dicom_file, plot=True):
   
     ds = pydicom.dcmread(dicom_file)
     img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
-    origin_img = cv2.convertScaleAbs(ds.pixel_array, alpha=(2550.0/65535.0))
 
     # ------------------------------------------------------------------------- #
     #        使用阈值为3提取像素轮廓点                                             
@@ -154,7 +153,7 @@ def diagnosis(dicom_file, plot=True):
     # 旋转将胸廓ct摆正
     matrix = cv2.getRotationMatrix2D((lowest_1[0], lowest_1[1]), angle, 1.0)
     img = cv2.warpAffine(img, matrix, (img.shape[0], img.shape[1]))
-    origin_img = cv2.warpAffine(origin_img, matrix, (img.shape[0], img.shape[1]))
+    origin_img = cv2.warpAffine(ds.pixel_array, matrix, (img.shape[0], img.shape[1]))
 
     inner_contours = [rotate_contours(contour, matrix)
                         for contour in inner_contours]
