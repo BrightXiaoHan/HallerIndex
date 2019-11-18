@@ -150,14 +150,15 @@ def diagnosis(dicom_file, plot=True):
 
     angle = np.arctan(dy / dx) / math.pi * 180
 
-    # 旋转将胸廓ct摆正
-    matrix = cv2.getRotationMatrix2D((lowest_1[0], lowest_1[1]), angle, 1.0)
-    img = cv2.warpAffine(img, matrix, (img.shape[0], img.shape[1]))
-    origin_img = cv2.warpAffine(ds.pixel_array, matrix, (img.shape[0], img.shape[1]))
+    if abs(angle) <= 15:
+        # 旋转将胸廓ct摆正
+        matrix = cv2.getRotationMatrix2D((lowest_1[0], lowest_1[1]), angle, 1.0)
+        img = cv2.warpAffine(img, matrix, (img.shape[0], img.shape[1]))
+        origin_img = cv2.warpAffine(ds.pixel_array, matrix, (img.shape[0], img.shape[1]))
 
-    inner_contours = [rotate_contours(contour, matrix)
-                        for contour in inner_contours]
-    out_contour = rotate_contours(out_contour, matrix)
+        inner_contours = [rotate_contours(contour, matrix)
+                            for contour in inner_contours]
+        out_contour = rotate_contours(out_contour, matrix)
 
     inner_left_top_point = find_boundary_point(inner_contours[0], "top")
     inner_right_top_point = find_boundary_point(inner_contours[1], "top")
@@ -208,7 +209,8 @@ def diagnosis(dicom_file, plot=True):
     tmp_points = mid_bottom
 
     # 将上下胸骨的轮廓合并
-    vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 30, y_min=mid_bottom[1],  x_min=left_chest_leftmost[0], x_max=right_chest_rightmost[0], mode="exist")
+    vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 30, y_min=mid_bottom[1], mode="exist")
+    vertebra_contour = filter_contours(vertebra_contour, x_min=left_top[0], x_max=right_top[0], mode="all")
     if len(vertebra_contour) > 0: # 如果找到脊椎骨点, 则使用，否则使用下陷的点进行替代 
         top_vertebra_point = find_boundary_point(np.concatenate(vertebra_contour), "bottom")
         if top_vertebra_point[1] - mid_bottom[1] < 10:
@@ -230,9 +232,9 @@ def diagnosis(dicom_file, plot=True):
     # 寻找环绕胸骨的最左侧点和最右侧点
     rib_contours_all_in_one = filter_contour_points(rib_contours_all_in_one, y_min=top_vertebra_point[1], y_max=bottom_sternum_point[1])
     left_rib_point = find_boundary_point(rib_contours_all_in_one, "left")
-    left_rib_point[0] = left_rib_point[0] + 10
+    left_rib_point[0] = left_rib_point[0] + 20
     right_rib_point = find_boundary_point(rib_contours_all_in_one, "right")
-    right_rib_point[0] = right_rib_point[0] - 10
+    right_rib_point[0] = right_rib_point[0] - 20
     # ------------------------------------------------------------------------- #
     #        计算b，即内胸廓凹陷点与脊椎骨上侧点的连线                                 
     # ------------------------------------------------------------------------- #    
@@ -281,8 +283,7 @@ def diagnosis(dicom_file, plot=True):
 
     plt.text(24, out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10, color="white")
 
-    # plt.legend()
-
     figure_image = fig2img(fig)
 
+    plt.close(fig)
     return haller_index, figure_image
