@@ -8,10 +8,11 @@ import re
 import os
 from tqdm import tqdm
 
-from src import diagnosis_folder
+from src import diagnosis_folder, AvaliableDicomNotFoundException
 
 parser = argparse.ArgumentParser()
 parser.add_argument("input_excel", type=str, help="输入表格")
+parser.add_argument("is_processed", type=bool, help="表示表格是否已经处理过了，True表示已经经过处理，表格只有两列，第一列是住院号，第二列是Haller指数。没有处理过的是原始表格，里面包含诊断意见，需要使用正则表达式抽取Haller指数。")
 parser.add_argument("output_excel", type=str, help="输出表格")
 parser.add_argument("decom_dir", type=str, help="ct影像目录，目录中根据病人住院号命名的文件夹，每个文件夹中是病人的ct照片")
 
@@ -32,10 +33,13 @@ for i in range(1, booksheet.nrows):
     value = booksheet.row_values(i)
     pid = str(int(value[0]))
     description = value[-1]
-    match_obj = re.match(haller_reg, description)
-    if not match_obj:
-        continue
-    haller_index = match_obj.group(2)
+    if args.is_processed:
+        haller_index = float(description)
+    else:
+        match_obj = re.match(haller_reg, description)
+        if not match_obj:
+            continue
+        haller_index = match_obj.group(2)
     mapping[pid] = {"ground_truth": haller_index, "prediction": -1}
 
 
@@ -43,8 +47,12 @@ for i in range(1, booksheet.nrows):
 for folder_name in tqdm(os.listdir(args.decom_dir)):
     folder = os.path.join(args.decom_dir, folder_name)
     if os.path.isdir(folder) and folder_name in mapping:
-        _, h = diagnosis_folder(folder)
-        mapping[folder_name]["prediction"] = max(h)
+        try:
+            _, h = diagnosis_folder(folder)
+        except AvaliableDicomNotFoundException:
+            continue
+        if len(h) > 0:
+            mapping[folder_name]["prediction"] = max(h)
         
 
 workbook = xlwt.Workbook(encoding='utf-8')
