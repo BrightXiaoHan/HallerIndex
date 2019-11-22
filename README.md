@@ -24,7 +24,7 @@ python接口
 ```python
 # 基于论文二的检测方法
 from src import diagnosis_folder
-figure, haller_index = diagnosis_folder("/path/to/ct_dir", top=1)
+figure, haller_index = diagnosis_folder("/path/to/ct_dir")
 figure[0].save("HallerResult.png")
 ```
 

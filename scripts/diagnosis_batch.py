@@ -15,7 +15,6 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser()
 parser.add_argument("src_dir", type=str, help="病人胸部ct文件夹路径。")
 parser.add_argument("dest_dir", type=str, help="结果输出目录。")
-parser.add_argument("top", type=int, default=3, help="输出结果的top几")
 
 args = parser.parse_args()
 
@@ -25,7 +24,7 @@ for folder in tqdm(list(os.walk(args.src_dir))[0][1]):
     if not os.path.isdir(os.path.join(args.dest_dir, folder)):
         os.makedirs(os.path.join(args.dest_dir, folder))
     try:
-        figures, indexes = diagnosis_folder(os.path.join(args.src_dir, folder), top=args.top)
+        figures, indexes = diagnosis_folder(os.path.join(args.src_dir, folder))
     except Exception as e:
         error_list.append(folder)
         continue

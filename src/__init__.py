@@ -24,13 +24,12 @@ def diagnosis_folder(folder, **kwargs):
     return diagnosis_files(files, **kwargs)
 
 
-def diagnosis_files(files, top=3, _return_files=False):
+def diagnosis_files(files, _return_files=False):
     """诊断一个病人所有的ct照片，
     注：默认文件是按顺序排列的 即 FILE1 FILE2 FILE3 ...
     
     Args:
         files (list): 列表的每个元素为文件路径或者二进制buffer
-        top (int): default is 3. 选择Haller指数最大的 top 张照片作为返回值
     Returns:
         list: PIL Image object list
         list: int list (Haller指数)

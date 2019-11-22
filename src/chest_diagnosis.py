@@ -74,7 +74,7 @@ def degree_of_depression(dicom_file):
 
     return degree
 
-def diagnosis(dicom_file, plot=True):
+def diagnosis(dicom_file):
     """计算给定胸部横切照片的Haller指数
     
     Args:
@@ -248,12 +248,6 @@ def diagnosis(dicom_file, plot=True):
 
     haller_index = a / b
 
-    if not plot:
-        fig = plt.figure(figsize=(8, 6))
-        plt.imshow(origin_img)
-        figure_image = fig2img(fig)
-        return haller_index, figure_image
-
     # ------------------------------------------------------------------------- #
     #       绘制辅助线                                  
     # ------------------------------------------------------------------------- #
@@ -286,4 +280,7 @@ def diagnosis(dicom_file, plot=True):
     figure_image = fig2img(fig)
 
     plt.close(fig)
+
+    
+
     return haller_index, figure_image

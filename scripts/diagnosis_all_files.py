@@ -18,7 +18,7 @@ parser.add_argument("dest_dir", type=str, help="结果输出目录。")
 args = parser.parse_args()
 
 # 计算Haller指数，画辅助线
-figure, haller_index, files = diagnosis_folder(args.src_dir, top=-1,  _return_files=True)
+figure, haller_index, files = diagnosis_folder(args.src_dir, _return_files=True)
 
 if not os.path.isdir(args.dest_dir):
     os.makedirs(args.dest_dir)
