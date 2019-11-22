@@ -79,7 +79,6 @@ def diagnosis(dicom_file):
     
     Args:
         dicom_file (str): 胸部横切dicom文件
-        plot (bool): 是否在原图上绘制辅助线
     
     Returns:
         tuple: haller_index (Haller指数), figure_image(带辅助线的照片) 注：如果plot为Fasle, 将只返回Haller指数
@@ -108,12 +107,6 @@ def diagnosis(dicom_file):
     # 找到胸外轮廓(区域面积最大的为外胸廓轮廓点)
     out_contour, out_contour_area = find_outer_contour(contours)
     out_contour, (cx, cy) = sort_clockwise(out_contour)
-
-    # 找到外胸廓突点，和外轮廓凹点
-    left_top = find_boundary_point(filter_contour_points(out_contour, x_max=cx, y_max=cy), position="top")
-    right_top = find_boundary_point(filter_contour_points(out_contour, x_min=cx, y_max=cy), position="top")
-
-    mid_bottom = find_boundary_point(filter_contour_points(out_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
 
     # 找到外胸轮廓的最高点和最低点
     out_contour_bottom = find_boundary_point(out_contour, "bottom")
@@ -163,6 +156,15 @@ def diagnosis(dicom_file):
     inner_left_top_point = find_boundary_point(inner_contours[0], "top")
     inner_right_top_point = find_boundary_point(inner_contours[1], "top")
 
+    # 找到外胸廓突点，和外轮廓凹点
+    left_top = find_boundary_point(filter_contour_points(out_contour, x_max=cx, y_max=cy), position="top")
+    right_top = find_boundary_point(filter_contour_points(out_contour, x_min=cx, y_max=cy), position="top")
+
+    out_contour_left = find_boundary_point(out_contour, "left")
+    out_contour_right = find_boundary_point(out_contour, "right")
+
+    mid_bottom = find_boundary_point(filter_contour_points(out_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
+
     # ------------------------------------------------------------------------- #
     #        找到左右胸最外侧的点，计算a（即左右内胸腔边界连线）                                           
     # ------------------------------------------------------------------------- # 
@@ -177,6 +179,7 @@ def diagnosis(dicom_file):
     ret, binary = cv2.threshold(img, 4, 255, cv2.THRESH_BINARY)
     _, rib_contours, _ = cv2.findContours(
         binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    rib_contours = filter_contours(rib_contours, y_max=out_contour_bottom[1], y_min=min(left_top[1], right_top[1]), x_min=out_contour_left[0], x_max=out_contour_right[0], mode="all")
     rib_contours = sorted(rib_contours, key=lambda x: len(x))
     rib_contours_all_in_one = np.concatenate(rib_contours)
 
@@ -209,20 +212,23 @@ def diagnosis(dicom_file):
     tmp_points = mid_bottom
 
     # 将上下胸骨的轮廓合并
-    vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 30, y_min=mid_bottom[1], mode="exist")
+    vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 70, y_min=mid_bottom[1], mode="all")
     vertebra_contour = filter_contours(vertebra_contour, x_min=left_top[0], x_max=right_top[0], mode="all")
     if len(vertebra_contour) > 0: # 如果找到脊椎骨点, 则使用，否则使用下陷的点进行替代 
+        vertebra_contour = sorted(vertebra_contour, key=lambda x: len(x))[-1:]
         top_vertebra_point = find_boundary_point(np.concatenate(vertebra_contour), "bottom")
         if top_vertebra_point[1] - mid_bottom[1] < 10:
-            tmp_points[1] += 25
+            tmp_points[1] += 30
             vertebra_contour = tmp_points.reshape(1, 1, -1)
         else:
             vertebra_contour = np.concatenate(vertebra_contour)
     else:
-        tmp_points[1] += 25
+        tmp_points[1] += 30
         vertebra_contour = tmp_points.reshape(1, 1, -1)
+
+    bottom_rib_contours = [c for c in bottom_rib_contours if len(c) > 40]
     sternum_contour = np.concatenate(bottom_rib_contours)
-    sternum_contour = filter_contour_points(sternum_contour, y_min=demarcation_point, y_max=out_contour_bottom[1], x_min=left_top[0], x_max=right_top[0])
+    sternum_contour = filter_contour_points(sternum_contour, x_min=left_top[0], x_max=right_top[0])
 
 
     # 寻找脊椎骨最上点， 和胸骨最下点
@@ -240,7 +246,7 @@ def diagnosis(dicom_file):
     # ------------------------------------------------------------------------- #    
     b = bottom_sternum_point[1] - top_vertebra_point[1]
     # 如果左右x轴相差过大，则使用胸骨点作为左右连线
-    if abs(left_chest_leftmost[1] - right_chest_rightmost[1]) > 20: 
+    if abs(left_chest_leftmost[1] - right_chest_rightmost[1]) > 30: 
         left_chest_leftmost = left_rib_point
         right_chest_rightmost = right_rib_point
 

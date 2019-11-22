@@ -52,14 +52,11 @@ def diagnosis_files(files, _return_files=False):
                 start_, end_ = start, end
             start = i
             end = i
-    if end_ - start_ > 5:
-        degrees = degrees[start_: end_]
-        files = files[start_: end_]
+
+    degrees = degrees[start_: end_]
+    files = files[start_: end_]
 
     indexes = np.argsort(degrees)
-
-    if len(indexes) >= 1:
-        indexes = indexes[-1:]
     
     files = [files[i] for i in indexes]
     files.reverse()
@@ -71,16 +68,16 @@ def diagnosis_files(files, _return_files=False):
         try:
             f = wrap_dicom_buffer(f) if not isinstance(f, str) else f
             haller, figure = diagnosis(f)
+            figure_set.append(figure)
+            haller_set.append(haller)
+            files_set.append(f)
+            break
         except Exception as e:
-            continue
-        figure_set.append(figure)
-        haller_set.append(haller)
-        files_set.append(f)
+            pass
+
 
     if not _return_files:
         return figure_set, haller_set
     else:
         return figure_set, haller_set, files_set
 
-
-__all__ = ["diagnosis_v2", "depression_degree", "is_avaliable", "diagnosis_files"]

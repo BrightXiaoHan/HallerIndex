@@ -2,6 +2,9 @@ import io
 import os
 import numpy
 import base64
+
+import numpy as np
+
 from PIL import Image
 from io import BytesIO
  
@@ -144,3 +147,24 @@ def sort_files(all_files, keys=None):
     all_files = [all_files[i] for i in indexes]
     return all_files
 
+def sort_list(*args, key_index=0):
+    """排序(由小到大)args中的所有list元素(请确保args中的参数都为list类型, 并且长度相等)
+    
+    Args:
+        key_index (int, optional): args中的哪一个值作为key，作为key的值必须为元素为数字的列表. Defaults to 0，默认第一个列表为key值.
+    """
+    key = np.array(args[key_index])
+    if len(key) == 0:
+        return args
+
+    index = key.argsort()
+
+    result_list = []
+
+    for arg in args:
+        arg = [arg[i] for i in index]
+        result_list.append(arg)
+
+    return result_list
+
+    
