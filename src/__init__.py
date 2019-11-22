@@ -57,9 +57,9 @@ def diagnosis_files(files, _return_files=False):
         files = files[start_: end_]
 
     indexes = np.argsort(degrees)
-    if top > 0:
-        if len(indexes) >= top:
-            indexes = indexes[-top:]
+
+    if len(indexes) >= 1:
+        indexes = indexes[-1:]
     
     files = [files[i] for i in indexes]
     files.reverse()
