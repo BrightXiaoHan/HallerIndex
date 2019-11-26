@@ -53,6 +53,9 @@ def diagnosis_files(files, _return_files=False):
             start = i
             end = i
 
+    if end - start > end_ - start_:
+        start_, end_ = start, end
+    
     degrees = degrees[start_: end_]
     files = files[start_: end_]
 

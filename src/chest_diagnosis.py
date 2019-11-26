@@ -235,18 +235,19 @@ def diagnosis(dicom_file):
     top_vertebra_point = find_boundary_point(vertebra_contour, "bottom")
     bottom_sternum_point = find_boundary_point(sternum_contour, "top")
 
-    # 寻找环绕胸骨的最左侧点和最右侧点
-    rib_contours_all_in_one = filter_contour_points(rib_contours_all_in_one, y_min=top_vertebra_point[1], y_max=bottom_sternum_point[1])
-    left_rib_point = find_boundary_point(rib_contours_all_in_one, "left")
-    left_rib_point[0] = left_rib_point[0] + 20
-    right_rib_point = find_boundary_point(rib_contours_all_in_one, "right")
-    right_rib_point[0] = right_rib_point[0] - 20
     # ------------------------------------------------------------------------- #
     #        计算b，即内胸廓凹陷点与脊椎骨上侧点的连线                                 
     # ------------------------------------------------------------------------- #    
     b = bottom_sternum_point[1] - top_vertebra_point[1]
     # 如果左右x轴相差过大，则使用胸骨点作为左右连线
-    if abs(left_chest_leftmost[1] - right_chest_rightmost[1]) > 30: 
+    if abs(left_chest_leftmost[1] - right_chest_rightmost[1]) > 30:
+        # 寻找环绕胸骨的最左侧点和最右侧点
+        rib_contours_all_in_one = filter_contour_points(rib_contours_all_in_one, x_min=out_contour_left[0], x_max=out_contour_right[0])
+        left_rib_point = find_boundary_point(rib_contours_all_in_one, "left")
+        left_rib_point[0] = left_rib_point[0] + 20
+        right_rib_point = find_boundary_point(rib_contours_all_in_one, "right")
+        right_rib_point[0] = right_rib_point[0] - 20
+        
         left_chest_leftmost = left_rib_point
         right_chest_rightmost = right_rib_point
 
