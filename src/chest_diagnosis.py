@@ -179,7 +179,7 @@ def diagnosis(dicom_file):
     ret, binary = cv2.threshold(img, 4, 255, cv2.THRESH_BINARY)
     _, rib_contours, _ = cv2.findContours(
         binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    rib_contours = filter_contours(rib_contours, y_max=out_contour_bottom[1], y_min=min(left_top[1], right_top[1]), x_min=out_contour_left[0], x_max=out_contour_right[0], mode="all")
+    rib_contours = filter_contours(rib_contours, y_max=out_contour_bottom[1] - 5, y_min=min(left_top[1], right_top[1]) + 5, x_min=out_contour_left[0]+1, x_max=out_contour_right[0] - 1, mode="all")
     rib_contours = sorted(rib_contours, key=lambda x: len(x))
     rib_contours_all_in_one = np.concatenate(rib_contours)
 
