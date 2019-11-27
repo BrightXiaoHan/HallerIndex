@@ -74,6 +74,34 @@ def degree_of_depression(dicom_file):
 
     return degree
 
+def segment(img):
+    """从影像中分割出骨头轮廓以及组织轮廓。
+    
+    Args:
+        img (np.ndarray): 通过pydicom.dcmread(file).pixel_array获得
+    
+    Returns:
+        list: 组织轮廓
+        list: 胸骨轮廓
+    """
+    # 阈值为3找到轮廓1
+    contours_one = extract_contours_from_pxarray(img, 3)
+    
+    # 阈值为4找到轮廓2
+    contours_two = extract_contours_from_pxarray(img, 4)
+    
+    # 阈值为5找到轮廓3
+    contours_three = extract_contours_from_pxarray(img, 5)
+    
+    _, max_area_one = max_area_contour(contours_one)
+    _, max_area_two = max_area_contour(contours_two)
+    
+    if abs(max_area_one - max_area_two) / max(max_area_one, max_area_two) > 0.6:
+        return contours_one, contours_two
+    else:
+        return contours_two, contours_three
+
+
 def diagnosis(dicom_file):
     """计算给定胸部横切照片的Haller指数
     
@@ -89,17 +117,13 @@ def diagnosis(dicom_file):
   
     ds = pydicom.dcmread(dicom_file)
     img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
-
     # ------------------------------------------------------------------------- #
-    #        使用阈值为3提取像素轮廓点                                             
+    #        提取胸骨点和组织轮廓点                                            
     # ------------------------------------------------------------------------- #
-    ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
-    _, contours, _ = cv2.findContours(
-        binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, rib_contours = segment(img)
 
     # 将所有轮廓按轮廓点数量由大到小排序
     contours = sorted(contours, key=lambda x: len(x))
-
 
     # ------------------------------------------------------------------------- #
     #        找外胸腔轮廓及其关键点                                           
@@ -152,6 +176,8 @@ def diagnosis(dicom_file):
         inner_contours = [rotate_contours(contour, matrix)
                             for contour in inner_contours]
         out_contour = rotate_contours(out_contour, matrix)
+        rib_contours = [rotate_contours(contour, matrix)
+                        for contour in rib_contours]
 
     inner_left_top_point = find_boundary_point(inner_contours[0], "top")
     inner_right_top_point = find_boundary_point(inner_contours[1], "top")
@@ -174,11 +200,8 @@ def diagnosis(dicom_file):
         inner_contours[1], position="right")
 
     # ------------------------------------------------------------------------- #
-    #        使用阈值为4，提取胸骨轮廓点                                        
+    #        过滤排序胸骨相关轮廓                                        
     # ------------------------------------------------------------------------- #
-    ret, binary = cv2.threshold(img, 4, 255, cv2.THRESH_BINARY)
-    _, rib_contours, _ = cv2.findContours(
-        binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     rib_contours = filter_contours(rib_contours, y_max=out_contour_bottom[1] - 5, y_min=min(left_top[1], right_top[1]) + 5, x_min=out_contour_left[0]+1, x_max=out_contour_right[0] - 1, mode="all")
     rib_contours = sorted(rib_contours, key=lambda x: len(x))
     rib_contours_all_in_one = np.concatenate(rib_contours)

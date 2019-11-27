@@ -193,7 +193,7 @@ def rotate_contours(contour, matrix):
         contour (numpy.ndarray): shape of (n, 1, 2)
         matrix (numpy.ndarray): shape of (2, 3)
     """
-    contour = np.squeeze(contour).transpose(1, 0)
+    contour = np.squeeze(contour, 1).transpose(1, 0)
     pad = np.ones((1, contour.shape[1]))
     contour = np.concatenate([contour, pad])
     
@@ -288,7 +288,7 @@ def refine_contour(contour, img_shape):
         img_shape (tuple): 原始图像的大小
     
     Returns:
-        [type]: [description]
+        np.ndarray: 缩小后的轮廓
     """
     img = np.ones(shape=img_shape, dtype="uint8") * 255
     cv2.drawContours(img, [contour], -1, (0, 0, 0), -1)
@@ -298,3 +298,19 @@ def refine_contour(contour, img_shape):
     result_contour = sorted(contours, key=lambda x: len(x))[-1]
 
     return result_contour
+
+def extract_contours_from_pxarray(pixel_array, threshold):
+    """从dicom像素图片中提取轮廓点集
+    
+    Args:
+        pixel_array (numpy.ndarray): 通过pydicom.dcmread(file).pixel_array获得, 并转换成uint8类型
+        threshold (int): 提取轮廓的阈值
+    
+    Returns:
+        list: list of contours
+    """
+    ret, binary = cv2.threshold(pixel_array, threshold, 255, cv2.THRESH_BINARY)
+    _, contours, _ = cv2.findContours(
+        binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    return contours
+    
