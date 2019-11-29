@@ -6,6 +6,7 @@ import cv2
 import math
 
 import numpy as np
+import pylab
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 
@@ -46,17 +47,40 @@ def find_outer_contour(contours):
     return max_area_contour(contours)
 
 
-def show_contours(img, contours):
-    """在坐标轴中展示指定的轮廓
+def show_contours(img, contours, copy=False, imshow=False):
+    """在指定图片的中展示指定的轮廓
 
     Args:
         img (numpy.ndarray): 原始图像
         contours (list): 轮廓集合
+        copy (bool): True 在原图上绘制轮廓。False 创建图像的拷贝，在拷贝上绘制轮廓
+        imshow (bool): 是否使用pyplot展示图像。如果你使用jupyter-notebook，可以将其设置为True
+    Return:
+        np.ndarray: 绘制后的图片矩阵
     """
-    img_with_contours = np.copy(img)
-    cv2.drawContours(img_with_contours, contours, -1, (255, 255, 255), 3)
-    plt.imsave("hello.jpg", img_with_contours, cmap=plt.cm.bone)
-
+    img_with_contours = np.copy(img) if copy else img
+    cv2.drawContours(img_with_contours, contours, -1, (0, 100, 0), 3)
+    if imshow:
+        pylab.imshow(img_with_contours)
+    return img_with_contours
+    
+def show_points(img, points, copy=False, imshow=False):
+    """在指定图片中绘制出指定的点
+    
+    Args:
+        img ([type]): [description]
+        points ([type]): [description]
+        copy (bool): True 在原图上绘制轮廓。False 创建图像的拷贝，在拷贝上绘制轮廓
+        imshow (bool): 是否使用pyplot展示图像。如果你使用jupyter-notebook，可以将其设置为True
+    Return:
+        np.ndarray: 绘制后的图片矩阵
+    """
+    img_with_points = np.copy(img) if copy else img
+    for point in points:
+        cv2.circle(img_with_points, tuple(point), 40, (0, 200, 0), 4)
+    if imshow:
+        pylab.imshow(img_with_points)
+    return img_with_points
 
 def find_boundary_point(contour, position):
     """找到指定轮廓的最低点，并返回, （注意绘图时x轴坐标由左至右递增， y轴坐标由上至下递增）
