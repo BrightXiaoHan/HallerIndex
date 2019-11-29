@@ -251,7 +251,7 @@ def diagnosis(dicom_file):
 
     bottom_rib_contours = [c for c in bottom_rib_contours if len(c) > 40]
     sternum_contour = np.concatenate(bottom_rib_contours)
-    sternum_contour = filter_contour_points(sternum_contour, x_min=left_top[0], x_max=right_top[0])
+    sternum_contour = filter_contour_points(sternum_contour, x_min=left_top[0] + 10, x_max=right_top[0] - 10, y_min=mid_bottom[1] +30)
 
 
     # 寻找脊椎骨最上点， 和胸骨最下点
