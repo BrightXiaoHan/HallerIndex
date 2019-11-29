@@ -281,7 +281,7 @@ def diagnosis(dicom_file):
     # ------------------------------------------------------------------------- #
     #       绘制辅助线                                  
     # ------------------------------------------------------------------------- #
-    fig = plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(36, 36))
     plt.imshow(origin_img, cmap=plt.cm.gray)
 
     # 画出拟合曲线和原始点集
@@ -295,17 +295,17 @@ def diagnosis(dicom_file):
     xl = left_chest_leftmost[0]
     xr = right_chest_rightmost[0]
 
-    plt.plot([xl, xr], [y, y], color="magenta", linewidth=2)
+    plt.plot([xl, xr], [y, y], color="magenta", linewidth=4)
 
     x = bottom_sternum_point[0]
     yt = top_vertebra_point[1]
     yb = bottom_sternum_point[1]
 
     # 画e 
-    plt.plot([x, x], [yt, yb], color="cyan", linewidth=2)
+    plt.plot([x, x], [yt, yb], color="cyan", linewidth=4)
 
 
-    plt.text(24, out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=10, color="white")
+    plt.text(24, out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
 
     figure_image = fig2img(fig)
 
