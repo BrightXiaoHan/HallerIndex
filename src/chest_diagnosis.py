@@ -232,7 +232,7 @@ def diagnosis(dicom_file):
     #     bottom_rib_contours = bottom_rib_contours[-3:]
 
     # 外胸廓凹陷点向下作为胸肋骨点
-    tmp_points = mid_bottom
+    tmp_points = mid_bottom.copy()
 
     # 将上下胸骨的轮廓合并
     vertebra_contour = filter_contours(rib_contours, y_max=tmp_points[1] + 70, y_min=mid_bottom[1], mode="all")
