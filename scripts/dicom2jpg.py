@@ -5,6 +5,7 @@ import glob
 import pydicom
 import cv2
 import argparse
+import pylab
 
 parser = argparse.ArgumentParser()
 parser.add_argument("src_dir", type=str, help="病人胸部ct文件夹路径。")
@@ -24,5 +25,5 @@ for f in all_file:
     except pydicom.errors.InvalidDicomError as e:
         continue
 
-    img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
-    cv2.imwrite(os.path.join(args.dest_dir, os.path.basename(f) + ".jpg"), img * 20)
+    saved_path = os.path.join(args.dest_dir, os.path.basename(f) + ".jpg")
+    pylab.imsave(saved_path, ds.pixel_array, cmap=pylab.cm.gray)
