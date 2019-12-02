@@ -1,5 +1,6 @@
 from src.contours_op import *
 from src.utils import *
+from easydict import EasyDict
 
 def degree_of_depression(dicom_file):
     """判断一张ct图像的凹陷程度
@@ -103,6 +104,9 @@ def segment(img):
 
 
 def diagnosis(dicom_file):
+    return draw(analyse(dicom_file))
+    
+def analyse(dicom_file):
     """计算给定胸部横切照片的Haller指数
     
     Args:
@@ -259,9 +263,9 @@ def diagnosis(dicom_file):
     bottom_sternum_point = find_boundary_point(sternum_contour, "top")
 
     # ------------------------------------------------------------------------- #
-    #        计算b，即内胸廓凹陷点与脊椎骨上侧点的连线                                 
+    #        确定Haller指数的左右两个点位                                 
     # ------------------------------------------------------------------------- #    
-    b = bottom_sternum_point[1] - top_vertebra_point[1]
+
     # 如果左右x轴相差过大，则使用胸骨点作为左右连线
     if abs(left_chest_leftmost[1] - right_chest_rightmost[1]) > 30:
         # 寻找环绕胸骨的最左侧点和最右侧点
@@ -274,15 +278,43 @@ def diagnosis(dicom_file):
         left_chest_leftmost = left_rib_point
         right_chest_rightmost = right_rib_point
 
-    a = right_chest_rightmost[0] - left_chest_leftmost[0]
+    # ------------------------------------------------------------------------- #
+    #       将有用的点集合，轮廓集合放在同一个字典中                                  
+    # ------------------------------------------------------------------------- #
+    result_dict = EasyDict({
+        "img": origin_img,  # CT影像像素值
+        "left_chest_leftmost": left_chest_leftmost,  # 左侧胸腔最外侧的点
+        "right_chest_rightmost": right_chest_rightmost,  # 右侧胸腔最外侧的点
+        "top_vertebra_point": top_vertebra_point,  # 胸肋骨最靠近胸腔的点（只包含中间部分）
+        "bottom_sternum_point": bottom_sternum_point,  #  脊椎骨最靠近胸腔的点
+        "vertebra": vertebra_contour,  # 胸肋骨（中间部分）
+        "sternum": sternum_contour,  # 脊椎骨
+        "left_chest": inner_contours[0],  # 左胸腔轮廓
+        "right_chest": inner_contours[1],  # 右胸腔轮廓
+        "out_contour": out_contour,  # 外轮廓
+        "mid_bottom": mid_bottom,  # 外轮廓中间凹陷点
+        "out_contour_top": out_contour_top  # 外胸廓高点 （y轴方向最高）
+    })
+    
+    return result_dict
+
+def draw(dic):
+    """根据analyse函数提取的关键特征绘制辅助线并，计算Haller指数
+    
+    Args:
+        result_dict (EasyDict): analyse函数的返回值
+    
+    Returns:
+        EasyDict: "haller_index" Haller指数，"figure_image" 绘制辅助线之后的照片
+    """
+    
+    b = dic.bottom_sternum_point[1] - dic.top_vertebra_point[1]
+    a = dic.right_chest_rightmost[0] - dic.left_chest_leftmost[0]
 
     haller_index = a / b
-
-    # ------------------------------------------------------------------------- #
-    #       绘制辅助线                                  
-    # ------------------------------------------------------------------------- #
+    
     fig = plt.figure(figsize=(36, 36))
-    plt.imshow(origin_img, cmap=plt.cm.gray)
+    plt.imshow(dic.img, cmap=plt.cm.gray)
 
     # 画出拟合曲线和原始点集
     # 画胸廓拟合点集
@@ -291,26 +323,25 @@ def diagnosis(dicom_file):
     # plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=2)
 
     # 画左右连线
-    y = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
-    xl = left_chest_leftmost[0]
-    xr = right_chest_rightmost[0]
+    y = (dic.left_chest_leftmost[1] + dic.right_chest_rightmost[1]) / 2
+    xl = dic.left_chest_leftmost[0]
+    xr = dic.right_chest_rightmost[0]
 
     plt.plot([xl, xr], [y, y], color="magenta", linewidth=4)
 
-    x = bottom_sternum_point[0]
-    yt = top_vertebra_point[1]
-    yb = bottom_sternum_point[1]
+    x = dic.bottom_sternum_point[0]
+    yt = dic.top_vertebra_point[1]
+    yb = dic.bottom_sternum_point[1]
 
     # 画e 
     plt.plot([x, x], [yt, yb], color="cyan", linewidth=4)
 
 
-    plt.text(24, out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
+    plt.text(24, dic.out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
 
     figure_image = fig2img(fig)
 
     plt.close(fig)
 
-    
-
     return haller_index, figure_image
+
