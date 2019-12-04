@@ -26,7 +26,7 @@ for folder in tqdm(list(os.walk(args.src_dir))[0][1]):
         shutil.rmtree(os.path.join(args.dest_dir, folder))
     os.makedirs(os.path.join(args.dest_dir, folder))
     try:
-        figures, indexes, fnames = diagnosis_folder(os.path.join(args.src_dir, folder), _return_files=True)
+        figures, indexes, fnames = diagnosis_folder(os.path.join(args.src_dir, folder), _return_files=True, _debug=True)
     except Exception as e:
         error_list.append(folder)
         continue

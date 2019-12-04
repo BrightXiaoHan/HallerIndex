@@ -1,5 +1,6 @@
 from src.contours_op import *
 from src.utils import *
+from .dicom_process import *
 from easydict import EasyDict
 
 def degree_of_depression(dicom_file):
@@ -121,6 +122,8 @@ def analyse(dicom_file):
   
     ds = pydicom.dcmread(dicom_file)
     img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
+    hu = get_pixels_hu(ds)
+    origin_img = set_dicom_window_width_center(hu, 360, 30)
     # ------------------------------------------------------------------------- #
     #        提取胸骨点和组织轮廓点                                            
     # ------------------------------------------------------------------------- #
@@ -175,7 +178,7 @@ def analyse(dicom_file):
         # 旋转将胸廓ct摆正
         matrix = cv2.getRotationMatrix2D((lowest_1[0], lowest_1[1]), angle, 1.0)
         img = cv2.warpAffine(img, matrix, (img.shape[0], img.shape[1]))
-        origin_img = cv2.warpAffine(ds.pixel_array, matrix, (img.shape[0], img.shape[1]))
+        origin_img = cv2.warpAffine(origin_img, matrix, (img.shape[0], img.shape[1]))
 
         inner_contours = [rotate_contours(contour, matrix)
                             for contour in inner_contours]
@@ -247,11 +250,14 @@ def analyse(dicom_file):
         if top_vertebra_point[1] - mid_bottom[1] < 10:
             tmp_points[1] += 30
             vertebra_contour = tmp_points.reshape(1, 1, -1)
+            vertebra_avaliable = False
         else:
             vertebra_contour = np.concatenate(vertebra_contour)
+            vertebra_avaliable = True
     else:
         tmp_points[1] += 30
         vertebra_contour = tmp_points.reshape(1, 1, -1)
+        vertebra_avaliable = False
 
     bottom_rib_contours = [c for c in bottom_rib_contours if len(c) > 40]
     sternum_contour = np.concatenate(bottom_rib_contours)
@@ -261,6 +267,9 @@ def analyse(dicom_file):
     # 寻找脊椎骨最上点， 和胸骨最下点
     top_vertebra_point = find_boundary_point(vertebra_contour, "bottom")
     bottom_sternum_point = find_boundary_point(sternum_contour, "top")
+    
+    # 用一些规则判断脊椎骨位置是否可用
+    sternum_avaliable = True
 
     # ------------------------------------------------------------------------- #
     #        确定Haller指数的左右两个点位                                 
@@ -288,8 +297,10 @@ def analyse(dicom_file):
         "top_vertebra_point": top_vertebra_point,  # 胸肋骨最靠近胸腔的点（只包含中间部分）
         "bottom_sternum_point": bottom_sternum_point,  #  脊椎骨最靠近胸腔的点
         "vertebra": vertebra_contour,  # 胸肋骨（中间部分）
+        "vertebra_avaliable": vertebra_avaliable,  # 胸肋骨是否可用
         "sternum": sternum_contour,  # 脊椎骨
-        "left_chest": inner_contours[0],  # 左胸腔轮廓
+        "sternum_avaliable": sternum_avaliable,
+        " ": inner_contours[0],  # 左胸腔轮廓
         "right_chest": inner_contours[1],  # 右胸腔轮廓
         "out_contour": out_contour,  # 外轮廓
         "mid_bottom": mid_bottom,  # 外轮廓中间凹陷点
