@@ -54,3 +54,12 @@ def set_dicom_window_width_center(img_data, winwidth, wincenter, copy=True):
     img_temp[img_temp > 255] = 255
 
     return img_temp
+
+def get_default_image(dc):
+    """从ct影像中获得默认的阈值图像
+    
+    Args:
+        dc : dicom.dcread的返回值
+    """
+    img = get_pixels_hu(dc)
+    return set_dicom_window_width_center(img, 360, 60)

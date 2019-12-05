@@ -7,6 +7,8 @@ import cv2
 import argparse
 import pylab
 
+from src import get_default_image
+
 parser = argparse.ArgumentParser()
 parser.add_argument("src_dir", type=str, help="病人胸部ct文件夹路径。")
 parser.add_argument("dest_dir", type=str, help="结果输出目录。")
@@ -26,4 +28,4 @@ for f in all_file:
         continue
 
     saved_path = os.path.join(args.dest_dir, os.path.basename(f) + ".jpg")
-    pylab.imsave(saved_path, ds.pixel_array, cmap=pylab.cm.gray)
+    pylab.imsave(saved_path, get_default_image(ds), cmap=pylab.cm.gray)

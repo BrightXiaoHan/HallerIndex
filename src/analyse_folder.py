@@ -3,7 +3,7 @@ import numpy as np
 
 from .utils import wrap_dicom_buffer, sort_files
 from .chest_diagnosis import diagnosis, degree_of_depression, analyse, draw
-from .contours_op import show_contours, show_points
+from .contours_op import show_contours, show_points, find_boundary_point
 
 class AvaliableDicomNotFoundException(Exception):
     
@@ -88,24 +88,33 @@ def diagnosis_files(files, _return_files=False, _debug=False):
     
     # 找到凹陷程度最大的照片和它的临近照片
     max_index = target_index
-    a = max_index - 2 if max_index - 2 > 0 else 0
-    b = max_index + 2 if max_index + 2 < len(files) else len(files)
+    a = max_index - 3 if max_index - 3 > 0 else 0
+    b = max_index + 3 if max_index + 3 < len(files) else len(files)
     neibor_files = [files[i] for i in range(a, b) if i != max_index]
 
     # 分析这张照片，找出关键点和关键轮廓
     countours_set = []
+    vertebra_set = []  # 根据前后的胸骨位置进行定位
     points_set = []
     for f in neibor_files:
         f = wrap_dicom_buffer(f) if not isinstance(f, str) else f
         try:
             dic = analyse(f)
-            if _debug:
-                countours_set.append(dic.vertebra)
+            # if _debug:
+            #     countours_set.append(dic.vertebra)
+            if dic.vertebra_avaliable and dic.top_vertebra_point[1] - target_dic.vertebra_point < 20:
+                vertebra_set.append(dic.vertebra)
         except:
             continue
-    countours_set.append(target_dic.vertebra)
+    vertebra_set.append(target_dic.vertebra)
     
     show_contours(target_img, countours_set)
+    
+    # 根据前后可用胸骨的位置定位胸骨关键点坐标
+    vertebra_set = np.concatenate(vertebra_set)
+    top_vertebra_point = find_boundary_point(vertebra_set, "bottom")
+    target_dic.top_vertebra_point = top_vertebra_point
+    
     haller_index, figure_image = draw(target_dic)
     
     if not _return_files:

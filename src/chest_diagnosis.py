@@ -300,7 +300,7 @@ def analyse(dicom_file):
         "vertebra_avaliable": vertebra_avaliable,  # 胸肋骨是否可用
         "sternum": sternum_contour,  # 脊椎骨
         "sternum_avaliable": sternum_avaliable,
-        " ": inner_contours[0],  # 左胸腔轮廓
+        "left_chest": inner_contours[0],  # 左胸腔轮廓
         "right_chest": inner_contours[1],  # 右胸腔轮廓
         "out_contour": out_contour,  # 外轮廓
         "mid_bottom": mid_bottom,  # 外轮廓中间凹陷点
@@ -340,12 +340,13 @@ def draw(dic):
 
     plt.plot([xl, xr], [y, y], color="magenta", linewidth=4)
 
-    x = dic.bottom_sternum_point[0]
+    xt = dic.top_vertebra_point[0] if abs(dic.bottom_sternum_point[0] - dic.top_vertebra_point[0]) < 30 else dic.bottom_sternum_point[0]
+    xb = dic.bottom_sternum_point[0]
     yt = dic.top_vertebra_point[1]
     yb = dic.bottom_sternum_point[1]
 
     # 画e 
-    plt.plot([x, x], [yt, yb], color="cyan", linewidth=4)
+    plt.plot([xt, xb], [yt, yb], color="cyan", linewidth=4)
 
 
     plt.text(24, dic.out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
