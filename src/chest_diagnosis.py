@@ -340,13 +340,12 @@ def draw(dic):
 
     plt.plot([xl, xr], [y, y], color="magenta", linewidth=4)
 
-    xt = dic.top_vertebra_point[0] if abs(dic.bottom_sternum_point[0] - dic.top_vertebra_point[0]) < 30 else dic.bottom_sternum_point[0]
-    xb = dic.bottom_sternum_point[0]
+    x = dic.bottom_sternum_point[0]
     yt = dic.top_vertebra_point[1]
     yb = dic.bottom_sternum_point[1]
 
     # 画e 
-    plt.plot([xt, xb], [yt, yb], color="cyan", linewidth=4)
+    plt.plot([x, x], [yt, yb], color="cyan", linewidth=4)
 
 
     plt.text(24, dic.out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
