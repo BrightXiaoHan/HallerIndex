@@ -1,8 +1,8 @@
 # 将内轮廓图片的边缘,映射到原图
 import cv2
 
-cnt_list = []
 def fusion(masks, original_images):
+    cnt_list = []
     for mask, origin_image in zip(masks, original_images):
 
         size = origin_image.shape
