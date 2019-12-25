@@ -144,6 +144,7 @@ def analyse(dicom_file):
         "bottom_sternum_point": bottom_sternum_point,  #  脊椎骨最靠近胸腔的点
         "vertebra": vertebra,  # 胸肋骨（中间部分）
         "sternum": sternum,  # 脊椎骨
+        "inner_contour": inner_contour
     })
     
     return result_dict
@@ -162,6 +163,8 @@ def draw(dic):
     a = dic.right_chest_rightmost[0] - dic.left_chest_leftmost[0]
 
     haller_index = a / b
+
+    show_contours(dic.img, dic.inner_contour)
     
     fig = plt.figure(figsize=(36, 36))
     plt.imshow(dic.img, cmap=plt.cm.gray)
