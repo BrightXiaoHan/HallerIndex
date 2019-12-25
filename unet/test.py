@@ -12,6 +12,7 @@ model = unet(os.path.join(cwd, "model", 'unet_membrane.hdf5'))
 
 
 def cnt(images):
+    images = [image.astype(np.uint8) for image in images]
     testGene = testGenerator(images)
     results = model.predict_generator(testGene, len(images), verbose=1)
     masks = get_mask_img(results)

@@ -47,7 +47,7 @@ def find_outer_contour(contours):
     return max_area_contour(contours)
 
 
-def show_contours(img, contours, copy=False, imshow=False):
+def show_contours(img, contours, copy=False, imshow=False, _imsave=None):
     """在指定图片的中展示指定的轮廓
 
     Args:
@@ -55,6 +55,7 @@ def show_contours(img, contours, copy=False, imshow=False):
         contours (list): 轮廓集合
         copy (bool): True 在原图上绘制轮廓。False 创建图像的拷贝，在拷贝上绘制轮廓
         imshow (bool): 是否使用pyplot展示图像。如果你使用jupyter-notebook，可以将其设置为True
+        _imsave (str): 加入此参数可以把生成的图片导出为本地文件
     Return:
         np.ndarray: 绘制后的图片矩阵
     """
@@ -62,6 +63,8 @@ def show_contours(img, contours, copy=False, imshow=False):
     cv2.drawContours(img_with_contours, contours, -1, (0, 100, 0), 3)
     if imshow:
         pylab.imshow(img_with_contours)
+    if _imsave is not None:
+        pylab.imsave(_imsave, img_with_contours, cmap=pylab.cm.gray)
     return img_with_contours
     
 def show_points(img, points, copy=False, imshow=False):
