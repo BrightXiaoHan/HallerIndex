@@ -12,7 +12,7 @@ def fusion(masks, original_images):
         # 二值化
         ret, binary = cv2.threshold(image_resize, 180, 255, cv2.THRESH_BINARY)
         # 找轮廓
-        img, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        img, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         # 图像宽和高
         h, w = binary.shape
         # 最大轮廓面积不能超过这个
