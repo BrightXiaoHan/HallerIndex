@@ -109,11 +109,33 @@ def diagnosis(dicom_file):
     return draw(analyse(dicom_file))
     
 def analyse(dicom_file):
-    
+    y = []
+    xy = []
+
     dc = pydicom.dcmread(dicom_file)
     image = get_default_image(dc)
     inner_contour = cnt([image])[0]
-  
+
+    l = len(inner_contour)
+    for i in range(l):
+        y.append(inner_contour[i][0][1])
+        xy.append(inner_contour[i][0])
+
+    y_max = max(y)
+    y_max = y_max - 10
+    threshold_value = y_max - 50
+    while y_max > min(y):
+        count = 0
+        for item in y:
+            if item == y_max:
+                count += 1
+        if count > 2:
+            y_max -= 10
+        elif y_max >= threshold_value:
+            y_max -= 10
+        else:
+            break
+
     left_chest_leftmost = find_boundary_point(inner_contour, position="left")
     right_chest_rightmost = find_boundary_point(inner_contour, position="right")
     
@@ -128,10 +150,8 @@ def analyse(dicom_file):
     left_top = find_boundary_point(left_inner_contour, position="top")
     right_top = find_boundary_point(right_inner_contour, position="top")
     
-
-    
-    vertebra = filter_contour_points(inner_contour, y_max=cy - 20, x_min=left_top[0], x_max=right_top[0])
-    sternum = filter_contour_points(inner_contour, y_min=cy - 20, x_min=left_top[0], x_max=right_top[0])
+    vertebra = filter_contour_points(inner_contour, y_max=y_max, x_min=left_top[0], x_max=right_top[0])
+    sternum = filter_contour_points(inner_contour, y_min=y_max, x_min=left_top[0], x_max=right_top[0])
     
     top_vertebra_point = find_boundary_point(vertebra, position="bottom")
     bottom_sternum_point = find_boundary_point(sternum, position="top")
@@ -164,7 +184,7 @@ def draw(dic):
 
     haller_index = a / b
 
-    show_contours(dic.img, dic.inner_contour)
+    # show_contours(dic.img, dic.inner_contour)
     
     fig = plt.figure(figsize=(36, 36))
     plt.imshow(dic.img, cmap=plt.cm.gray)
@@ -186,6 +206,8 @@ def draw(dic):
     yt = dic.top_vertebra_point[1]
     yb = dic.bottom_sternum_point[1]
 
+    xt = dic.top_vertebra_point[0]
+    plt.plot([xt, x], [yt, yt], color="green", linewidth=4)
     # 画e 
     plt.plot([x, x], [yt, yb], color="cyan", linewidth=4)
 
