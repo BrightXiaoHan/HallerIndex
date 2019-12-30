@@ -168,7 +168,7 @@ def analyse(dicom_file):
     cy = (left_chest_leftmost[1] + right_chest_rightmost[1])/2
     
     left_inner_contour = filter_contour_points(inner_contour, x_max=cx)
-    right_inner_contour = filter_contour_points(inner_contour, x_min=cy)
+    right_inner_contour = filter_contour_points(inner_contour, x_min=cx)
 
     left_top = find_boundary_point(left_inner_contour, position="top")
     right_top = find_boundary_point(right_inner_contour, position="top")
@@ -237,8 +237,8 @@ def draw(dic):
     yb = dic.bottom_sternum_point[1]
 
     xt = dic.top_vertebra_point[0]
-    plt.plot([x+50, x-50], [yb, yb], color="green", linewidth=4)
-    plt.plot([xt+50, xt-50], [yt, yt], color="green", linewidth=4)
+    plt.plot([xt+80, xt-80], [yb, yb], color="green", linewidth=4)
+    plt.plot([xt+80, xt-80], [yt, yt], color="green", linewidth=4)
     # 画e 
     plt.plot([x, x], [yt, yb], color="cyan", linewidth=4)
     # 画内轮廓

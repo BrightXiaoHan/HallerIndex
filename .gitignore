@@ -100,7 +100,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-
+.idea
 .vscode
 .cache
 data
