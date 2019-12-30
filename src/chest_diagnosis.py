@@ -116,6 +116,31 @@ def analyse(dicom_file):
     image = get_default_image(dc)
     inner_contour = cnt([image])[0]
 
+    # 找到左右胸轮廓的两个最低点，left_bottom是左侧，right_bottom是右侧
+    left_chest_leftmost = find_boundary_point(inner_contour, position="left")
+    right_chest_rightmost = find_boundary_point(inner_contour, position="right")
+
+    cx = (left_chest_leftmost[0] + right_chest_rightmost[0]) / 2
+    cy = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
+
+    left_inner_contour = filter_contour_points(inner_contour, x_max=cx)
+    right_inner_contour = filter_contour_points(inner_contour, x_min=cy)
+
+    left_bottom = find_boundary_point(left_inner_contour, position="bottom")
+    right_bottom = find_boundary_point(right_inner_contour, position="bottom")
+
+    # 以左侧最低点为中心，连线为轴将图像旋转，使得两点连线与X轴平行
+    dy = right_bottom[1] - left_bottom[1]
+    dx = right_bottom[0] - left_bottom[0]
+
+    angle = np.arctan(dy / dx) / math.pi * 180
+
+    if abs(angle) <= 15:
+        # 旋转将胸廓ct摆正
+        matrix = cv2.getRotationMatrix2D((left_bottom[0], left_bottom[1]), angle, 1.0)
+        image = cv2.warpAffine(image, matrix, (image.shape[0], image.shape[1]))
+        inner_contour = rotate_contours(inner_contour, matrix)
+
     l = len(inner_contour)
     for i in range(l):
         y.append(inner_contour[i][0][1])
@@ -144,9 +169,7 @@ def analyse(dicom_file):
     
     left_inner_contour = filter_contour_points(inner_contour, x_max=cx)
     right_inner_contour = filter_contour_points(inner_contour, x_min=cy)
-    
-    left_bottom = find_boundary_point(left_inner_contour, position="bottom")
-    right_bottom = find_boundary_point(right_inner_contour, position="bottom")
+
     left_top = find_boundary_point(left_inner_contour, position="top")
     right_top = find_boundary_point(right_inner_contour, position="top")
     
@@ -178,7 +201,14 @@ def draw(dic):
     Returns:
         EasyDict: "haller_index" Haller指数，"figure_image" 绘制辅助线之后的照片
     """
-    
+    inner_contour = dic.inner_contour
+    x_list = []
+    y_list = []
+    l = len(inner_contour)
+    for i in range(l):
+        y_list.append(inner_contour[i][0][1])
+        x_list.append(inner_contour[i][0][0])
+
     b = dic.bottom_sternum_point[1] - dic.top_vertebra_point[1]
     a = dic.right_chest_rightmost[0] - dic.left_chest_leftmost[0]
 
@@ -207,10 +237,12 @@ def draw(dic):
     yb = dic.bottom_sternum_point[1]
 
     xt = dic.top_vertebra_point[0]
-    plt.plot([xt, x], [yt, yt], color="green", linewidth=4)
+    plt.plot([x+50, x-50], [yb, yb], color="green", linewidth=4)
+    plt.plot([xt+50, xt-50], [yt, yt], color="green", linewidth=4)
     # 画e 
     plt.plot([x, x], [yt, yb], color="cyan", linewidth=4)
-
+    # 画内轮廓
+    plt.scatter(x_list, y_list, c="b")
 
     plt.text(24, 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
 
