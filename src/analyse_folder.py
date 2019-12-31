@@ -56,12 +56,18 @@ def diagnosis_files(files, _return_files=False, _debug=False):
 
     if end - start > end_ - start_:
         start_, end_ = start, end
-    
+
+    count = end_ - start_
+    if count <= 3:
+        raise AvaliableDicomNotFoundException()
+
+    start_ = start_ + 3
+    end_ = end_ - 3
     degrees = degrees[start_: end_]
     files = files[start_: end_]
 
     indexes = np.argsort(degrees)
-    
+
     sorted_files = [files[i] for i in indexes]
     sorted_files.reverse()
     indexes = indexes.tolist()
@@ -77,7 +83,7 @@ def diagnosis_files(files, _return_files=False, _debug=False):
             print(e)
             continue
         target_dic = dic
-        target_file = sorted_files[index]   
+        target_file = f
         break        
     
     if target_dic is None:

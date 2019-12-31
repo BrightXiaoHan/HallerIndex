@@ -55,7 +55,7 @@ def degree_of_depression(dicom_file):
         return 0
 
     # 规则2中点与两边的点y轴差距过小
-    if left_y_distance < 10 or right_y_distance < 10:
+    if left_y_distance < 15 or right_y_distance < 15:
         return 0
     
     # 规则3 底部点与中心店y轴距离过近的
