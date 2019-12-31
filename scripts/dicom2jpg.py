@@ -14,18 +14,18 @@ parser.add_argument("src_dir", type=str, help="病人胸部ct文件夹路径。"
 parser.add_argument("dest_dir", type=str, help="结果输出目录。")
 
 args = parser.parse_args()
-
-all_file = glob.glob(os.path.join(args.src_dir, "FILE*"))
+path = os.path.join(args.src_dir, "FILE*")
+all_file = glob.glob(path)
 
 if not os.path.isdir(args.dest_dir):
      os.makedirs(args.dest_dir)
 
 for f in all_file:
-	# 读取dicom文件中的像素数据
+    # 读取dicom文件中的像素数据
     try:
         ds = pydicom.dcmread(f)
     except pydicom.errors.InvalidDicomError as e:
         continue
 
-    saved_path = os.path.join(args.dest_dir, os.path.basename(f) + ".jpg")
+    saved_path = os.path.join(args.dest_dir, os.path.basename(f) + ".png")
     pylab.imsave(saved_path, get_default_image(ds), cmap=pylab.cm.gray)
