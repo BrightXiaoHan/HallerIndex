@@ -16,72 +16,19 @@ def degree_of_depression(dicom_file):
 
     # DicomDir等文件运行此段代码会报错，为不可用图像
     try:
-        ds = pydicom.dcmread(dicom_file)
-        img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0 / 65535.0))
+        ds = pydicom.read_file(dicom_file)
+        img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
+        ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
+        _, contours, _ = cv2.findContours(
+                        binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     except:
         return 0
-    # ------------------------------------------------------------------------- #
-    #        提取胸骨点和组织轮廓点
-    # ------------------------------------------------------------------------- #
-    contours, rib_contours = segment(img)
-
-    # 将所有轮廓按轮廓点数量由大到小排序
-    contours = sorted(contours, key=lambda x: len(x))
-
-    # ------------------------------------------------------------------------- #
-    #        找外胸腔轮廓及其关键点
-    # ------------------------------------------------------------------------- #
-    # 找到胸外轮廓(区域面积最大的为外胸廓轮廓点)
-    out_contour, out_contour_area = find_outer_contour(contours)
-    out_contour, (cx, cy) = sort_clockwise(out_contour)
-
-    # 找到外胸轮廓的最高点和最低点
-    out_contour_bottom = find_boundary_point(out_contour, "bottom")
-    out_contour_top = find_boundary_point(out_contour, "top")
-
-    # 过滤所有再外轮廓最低点之下的轮廓
-    contours = filter_contours(contours, y_max=out_contour_bottom[1] + 1, mode="all")
-
-    # ------------------------------------------------------------------------- #
-    #        找内胸腔轮廓及其关键点
-    # ------------------------------------------------------------------------- #
-    # 找到内胸腔轮廓
-    inner_contours = find_inner_contour(contours, out_contour_area)
-    if inner_contours == 0:
-        return 0
-    # 找到左右胸轮廓的两个最低点，lowest_1是左侧，lowest_2是右侧
-    lowest_1 = find_boundary_point(inner_contours[0], position="bottom")
-    lowest_2 = find_boundary_point(inner_contours[1], position="bottom")
-
-    # 交换位置 1 是左胸，2 是右胸
-    inner_contours[0], inner_contours[1] = (inner_contours[0], inner_contours[1]) if lowest_1[0] < lowest_2[0] else (
-        inner_contours[1], inner_contours[0])
-    inner_contours[0], _ = sort_clockwise(inner_contours[0])
-    inner_contours[1], _ = sort_clockwise(inner_contours[1])
-
-    lowest_1, lowest_2 = (lowest_1, lowest_2) if lowest_1[0] < lowest_2[0] else (
-        lowest_2, lowest_1)
-
-    # ------------------------------------------------------------------------- #
-    #        将图像及其轮廓旋转（将其摆正，使其水平）
-    # ------------------------------------------------------------------------- #
-    # 以左侧最低点为中心，连线为轴将图像旋转，使得两点连线与X轴平行
-    dy = lowest_2[1] - lowest_1[1]
-    dx = lowest_2[0] - lowest_1[0]
-
-    angle = np.arctan(dy / dx) / math.pi * 180
-
-    if abs(angle) <= 15:
-        # 旋转将胸廓ct摆正
-        matrix = cv2.getRotationMatrix2D((lowest_1[0], lowest_1[1]), angle, 1.0)
-        img = cv2.warpAffine(img, matrix, (img.shape[0], img.shape[1]))
-        inner_contours = [rotate_contours(contour, matrix)
-                          for contour in inner_contours]
-        out_contour = rotate_contours(out_contour, matrix)
-
 
     # 没有找到对应的最凹陷点，为不可用图像
     try:
+        contours = sorted(contours, key=lambda x: len(x))
+        out_contour, out_contour_area = find_outer_contour(contours)
+
         out_contour, (cx, cy) = sort_clockwise(out_contour)
 
         left_top = find_boundary_point(filter_contour_points(out_contour,  x_max=cx, y_max=cy), position="top")
@@ -124,7 +71,14 @@ def degree_of_depression(dicom_file):
     right_top_most_distance = right_most[0] - right_top[0]
     if left_x_distance / left_top_most_distance > 2 or right_x_distance / right_top_most_distance > 2:
         return 0
-    
+
+    # 规则6 去掉脖子
+    width = right_most[0] - left_most[0]
+    height = bottom_most[1] - min(left_top[1], right_top[1])
+    p = width/height
+    if p > 2.2:
+        return 0
+
     # 计算凹陷点到左右两侧连线的距离
     degree = max(left_y_distance, right_y_distance)
 

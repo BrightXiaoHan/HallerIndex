@@ -61,8 +61,8 @@ def diagnosis_files(files, _return_files=False, _debug=False):
     if count <= 3:
         raise AvaliableDicomNotFoundException()
 
-    start_ = start_ + 3
-    end_ = end_ - 3
+    start_ = start_ + 2
+    end_ = end_ - 2
     degrees = degrees[start_: end_]
     files = files[start_: end_]
 
