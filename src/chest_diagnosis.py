@@ -76,7 +76,7 @@ def degree_of_depression(dicom_file):
     width = right_most[0] - left_most[0]
     height = bottom_most[1] - min(left_top[1], right_top[1])
     p = width/height
-    if p > 2.2:
+    if p > 2.2 or p < 1.2:
         return 0
 
     # 计算凹陷点到左右两侧连线的距离
