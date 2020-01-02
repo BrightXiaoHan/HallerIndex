@@ -47,15 +47,8 @@ def degree_of_depression(dicom_file):
     left_y_distance = mid_bottom[1] - left_top[1]
     right_y_distance = mid_bottom[1] - right_top[1]
 
-    # 规则1  x轴距离差别过大
-    if left_x_distance / right_x_distance > 3 or right_x_distance / left_x_distance > 3:
-        return 0
     # 规则2 总体距离差距过小
     if left_x_distance < 10 or right_x_distance < 10:
-        return 0
-
-    # 规则2中点与两边的点y轴差距过小
-    if left_y_distance < 10 or right_y_distance < 10:
         return 0
     
     # 规则3 底部点与中心店y轴距离过近的
@@ -72,7 +65,7 @@ def degree_of_depression(dicom_file):
     if left_x_distance / left_top_most_distance > 2 or right_x_distance / right_top_most_distance > 2:
         return 0
 
-    # 规则6 去掉脖子
+    # 规则6 去掉脖子/纵切
     width = right_most[0] - left_most[0]
     height = bottom_most[1] - min(left_top[1], right_top[1])
     p = width/height
