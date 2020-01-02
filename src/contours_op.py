@@ -28,8 +28,7 @@ def find_inner_contour(contours, outline_area):
             all_eligible_contour.append(contour)
 
     if len(all_eligible_contour) < 2:
-        raise IndexError(
-            "Please check the image you given. Can't find inner contour of chest.")
+        return 0
 
     return all_eligible_contour[-2:]
 

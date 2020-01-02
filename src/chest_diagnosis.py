@@ -47,7 +47,8 @@ def degree_of_depression(dicom_file):
     # ------------------------------------------------------------------------- #
     # 找到内胸腔轮廓
     inner_contours = find_inner_contour(contours, out_contour_area)
-
+    if inner_contours == 0:
+        return 0
     # 找到左右胸轮廓的两个最低点，lowest_1是左侧，lowest_2是右侧
     lowest_1 = find_boundary_point(inner_contours[0], position="bottom")
     lowest_2 = find_boundary_point(inner_contours[1], position="bottom")
