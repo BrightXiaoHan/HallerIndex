@@ -31,6 +31,9 @@ def fusion(masks, original_images):
                     max_area = area
                     min_cnt = cnt
 
+        if max_area < 30000:
+            return 0
+
         epsilon = 0.00001 * cv2.arcLength(min_cnt, True)
         approx = cv2.approxPolyDP(min_cnt, epsilon, True)
 
