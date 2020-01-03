@@ -35,34 +35,41 @@ def diagnosis_files(files, _return_files=False, _debug=False):
         list: PIL Image object list
         list: int list (Haller指数)
     """
-    degrees = []
-
+    degrees1 = []
+    files1 = []
     degrees = np.array([degree_of_depression(wrap_dicom_buffer(f)) for f in files])
-    
+
     if degrees.max() <= 0:
         raise AvaliableDicomNotFoundException()
 
-    # 找连续可用的照片
-    start, end = 0, 0
-    start_, end_ = 0, 0
-    for i ,(f, d) in enumerate(zip(files, degrees)):
-        if d > 0:
-            end +=1
-        else:
-            if end - start > end_ - start_:
-                start_, end_ = start, end
-            start = i
-            end = i
+    for i in range(len(degrees)):
+        if degrees[i] > 0:
+            degrees1.append(degrees[i])
+            files1.append(files[i])
 
-    if end - start > end_ - start_:
-        start_, end_ = start, end
+    degrees1 = np.array(degrees1)
 
-    degrees = degrees[start_: end_]
-    files = files[start_: end_]
+    # # 找连续可用的照片
+    # start, end = 0, 0
+    # start_, end_ = 0, 0
+    # for i ,(f, d) in enumerate(zip(files, degrees)):
+    #     if d > 0:
+    #         end +=1
+    #     else:
+    #         if end - start > end_ - start_:
+    #             start_, end_ = start, end
+    #         start = i
+    #         end = i
+    #
+    # if end - start > end_ - start_:
+    #     start_, end_ = start, end
+    #
+    # degrees = degrees[start_: end_]
+    # files = files[start_: end_]
 
-    indexes = np.argsort(degrees)
+    indexes = np.argsort(degrees1)
 
-    sorted_files = [files[i] for i in indexes]
+    sorted_files = [files1[i] for i in indexes]
     sorted_files.reverse()
     indexes = indexes.tolist()
     indexes.reverse()
