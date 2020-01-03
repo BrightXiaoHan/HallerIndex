@@ -201,6 +201,9 @@ def draw(dic):
     Returns:
         EasyDict: "haller_index" Haller指数，"figure_image" 绘制辅助线之后的照片
     """
+    image = dic.img
+    #degree, mid_bottom, top = degree_get(image)
+
     inner_contour = dic.inner_contour
     x_list = []
     y_list = []
@@ -244,11 +247,45 @@ def draw(dic):
     # 画内轮廓
     plt.scatter(x_list, y_list, c="b")
 
+    #plt.plot([mid_bottom[0], top[0]], [mid_bottom[1], top[1]], color="cyan", linewidth=4)
+
     plt.text(24, 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
 
     figure_image = fig2img(fig)
 
     plt.close(fig)
 
-    return haller_index, figure_image
+    return haller_index, figure_image, a
 
+
+def degree_get(image):
+    """拿到图片凹陷点和距离
+    """
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    ret, binary = cv2.threshold(gray, 3, 255, cv2.THRESH_BINARY)
+    _, contours, _ = cv2.findContours(
+        binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # 没有找到对应的最凹陷点，为不可用图像
+    try:
+        contours = sorted(contours, key=lambda x: len(x))
+        out_contour, out_contour_area = find_outer_contour(contours)
+
+        out_contour, (cx, cy) = sort_clockwise(out_contour)
+
+        left_top = find_boundary_point(filter_contour_points(out_contour, x_max=cx, y_max=cy), position="top")
+        right_top = find_boundary_point(filter_contour_points(out_contour, x_min=cx, y_max=cy), position="top")
+
+        mid_bottom = find_boundary_point(
+            filter_contour_points(out_contour, x_min=left_top[0], x_max=right_top[0], y_max=cy), position="bottom")
+    except Exception as e:
+        return 0
+
+    left_y_distance = mid_bottom[1] - left_top[1]
+    right_y_distance = mid_bottom[1] - right_top[1]
+
+    if left_y_distance >= right_y_distance:
+        return left_y_distance, mid_bottom, left_top
+    else:
+        return right_y_distance, mid_bottom, right_top

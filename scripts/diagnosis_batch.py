@@ -12,6 +12,7 @@ import numpy as np
 from src import get_default_image
 from src import diagnosis_folder
 from tqdm import tqdm
+from tradition.scripts.tra import tradition_func
 
 parser = argparse.ArgumentParser()
 parser.add_argument("src_dir", type=str, help="病人胸部ct文件夹路径。")
@@ -42,12 +43,18 @@ for folder in tqdm(list(os.walk(args.src_dir))[0][1]):
     #         continue
 
     try:
-        figures, indexes, fnames = diagnosis_folder(os.path.join(args.src_dir, folder), _return_files=True, _debug=True)
+        figures, indexes, fnames, a1 = diagnosis_folder(os.path.join(args.src_dir, folder), _return_files=True, _debug=True)
+        figures2, indexes2, fnames2, a2 = tradition_func(os.path.join(args.src_dir, folder))
+        if abs(a2-a1) > 100:
+            figures = figures2
+            indexes = indexes2
+            fnames = fnames2
+
     except Exception as e:
         error_list.append(folder)
         continue
     for i, (figure, name) in enumerate(zip(figures, fnames)):
-        figure.save(os.path.join(args.dest_dir, folder, "%s.png" % os.path.basename(name)))
+        figure.save(os.path.join(args.dest_dir, folder, "{}_{}.png".format(folder, os.path.basename(name))))
 
 for i in error_list:
     print("%s error." % i)
