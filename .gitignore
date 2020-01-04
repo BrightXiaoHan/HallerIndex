@@ -99,7 +99,7 @@ venv.bak/
 dmypy.json
 # Pyre type checker
 .pyre/
-
+unet/model/unet_membrane.hdf5
 .idea
 .vscode
 .cache

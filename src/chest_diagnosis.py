@@ -254,10 +254,10 @@ def draw(dic):
     # 画内轮廓
     plt.scatter(x_list, y_list, c="b")
 
-    if left_y_distance >= right_y_distance:
-        plt.plot([mid_bottom[0], mid_bottom[0]], [mid_bottom[1], left_top[1]], color="cyan", linewidth=4)
-    else:
-        plt.plot([mid_bottom[0], mid_bottom[0]], [mid_bottom[1], right_top[1]], color="cyan", linewidth=4)
+    # if left_y_distance >= right_y_distance:
+    #     plt.plot([mid_bottom[0], mid_bottom[0]], [mid_bottom[1], left_top[1]], color="cyan", linewidth=4)
+    # else:
+    #     plt.plot([mid_bottom[0], mid_bottom[0]], [mid_bottom[1], right_top[1]], color="cyan", linewidth=4)
 
     plt.text(24, 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
 
