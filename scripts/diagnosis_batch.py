@@ -44,15 +44,19 @@ for folder in tqdm(list(os.walk(args.src_dir))[0][1]):
 
     try:
         figures, indexes, fnames, a1 = diagnosis_folder(os.path.join(args.src_dir, folder), _return_files=True, _debug=True)
-        figures2, indexes2, fnames2, a2 = tradition_func(os.path.join(args.src_dir, folder))
-        if abs(a2-a1) > 100:
-            figures = figures2
-            indexes = indexes2
-            fnames = fnames2
-
     except Exception as e:
         error_list.append(folder)
         continue
+    try:
+        figures2, indexes2, fnames2, a2 = tradition_func(os.path.join(args.src_dir, folder))
+        temp = (abs(a2 - a1) + 1) / a2
+        if (abs(a2 - a1) + 1) / a2 > 0.08:
+            figures = figures2
+            indexes = indexes2
+            fnames = fnames2
+    except:
+        error_list.append(folder)
+
     for i, (figure, name) in enumerate(zip(figures, fnames)):
         figure.save(os.path.join(args.dest_dir, folder, "{}_{}.png".format(folder, os.path.basename(name))))
 

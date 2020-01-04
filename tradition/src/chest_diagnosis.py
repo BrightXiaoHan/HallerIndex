@@ -46,15 +46,8 @@ def degree_of_depression(dicom_file):
     left_y_distance = mid_bottom[1] - left_top[1]
     right_y_distance = mid_bottom[1] - right_top[1]
 
-    # 规则1  x轴距离差别过大
-    if left_x_distance / right_x_distance > 3 or right_x_distance / left_x_distance > 3:
-        return 0
     # 规则2 总体距离差距过小
     if left_x_distance < 10 or right_x_distance < 10:
-        return 0
-
-    # 规则2中点与两边的点y轴差距过小
-    if left_y_distance < 10 or right_y_distance < 10:
         return 0
     
     # 规则3 底部点与中心店y轴距离过近的
@@ -70,7 +63,14 @@ def degree_of_depression(dicom_file):
     right_top_most_distance = right_most[0] - right_top[0]
     if left_x_distance / left_top_most_distance > 2 or right_x_distance / right_top_most_distance > 2:
         return 0
-    
+
+    # 规则6 去掉脖子/纵切
+    width = right_most[0] - left_most[0]
+    height = bottom_most[1] - min(left_top[1], right_top[1])
+    p = width / height
+    if p > 2.2 or p < 1.35:
+        return 0
+
     # 计算凹陷点到左右两侧连线的距离
     degree = max(left_y_distance, right_y_distance)
 
@@ -304,7 +304,10 @@ def analyse(dicom_file):
         "right_chest": inner_contours[1],  # 右胸腔轮廓
         "out_contour": out_contour,  # 外轮廓
         "mid_bottom": mid_bottom,  # 外轮廓中间凹陷点
-        "out_contour_top": out_contour_top  # 外胸廓高点 （y轴方向最高）
+        "out_contour_top": out_contour_top,  # 外胸廓高点 （y轴方向最高）
+        "left_top": left_top,
+        "right_top": right_top,
+        "inner_contour": None
     })
     
     return result_dict
@@ -318,7 +321,14 @@ def draw(dic):
     Returns:
         EasyDict: "haller_index" Haller指数，"figure_image" 绘制辅助线之后的照片
     """
-    
+    inner_contour = dic.inner_contour
+    x_list = []
+    y_list = []
+    l = len(inner_contour)
+    for i in range(l):
+        y_list.append(inner_contour[i][0][1])
+        x_list.append(inner_contour[i][0][0])
+
     b = dic.bottom_sternum_point[1] - dic.top_vertebra_point[1]
     a = dic.right_chest_rightmost[0] - dic.left_chest_leftmost[0]
 
@@ -346,7 +356,7 @@ def draw(dic):
 
     # 画e 
     plt.plot([x, x], [yt, yb], color="cyan", linewidth=4)
-
+    plt.scatter(x_list, y_list, c="b")
 
     plt.text(24, dic.out_contour_top[1] - 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
 

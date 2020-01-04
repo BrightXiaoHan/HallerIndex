@@ -124,7 +124,7 @@ def analyse(dicom_file):
     cy = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
 
     left_inner_contour = filter_contour_points(inner_contour, x_max=cx)
-    right_inner_contour = filter_contour_points(inner_contour, x_min=cy)
+    right_inner_contour = filter_contour_points(inner_contour, x_min=cx)
 
     left_bottom = find_boundary_point(left_inner_contour, position="bottom")
     right_bottom = find_boundary_point(right_inner_contour, position="bottom")
@@ -187,7 +187,10 @@ def analyse(dicom_file):
         "bottom_sternum_point": bottom_sternum_point,  #  脊椎骨最靠近胸腔的点
         "vertebra": vertebra,  # 胸肋骨（中间部分）
         "sternum": sternum,  # 脊椎骨
-        "inner_contour": inner_contour
+        "inner_contour": inner_contour,
+        "left_top": None,
+        "right_top": None,
+        "mid_bottom": None  # 外轮廓中间凹陷点
     })
     
     return result_dict
@@ -201,8 +204,12 @@ def draw(dic):
     Returns:
         EasyDict: "haller_index" Haller指数，"figure_image" 绘制辅助线之后的照片
     """
-    image = dic.img
-    #degree, mid_bottom, top = degree_get(image)
+    left_top = dic.left_top
+    right_top = dic.right_top
+    mid_bottom = dic.mid_bottom
+
+    left_y_distance = mid_bottom[1] - left_top[1]
+    right_y_distance = mid_bottom[1] - right_top[1]
 
     inner_contour = dic.inner_contour
     x_list = []
@@ -247,7 +254,10 @@ def draw(dic):
     # 画内轮廓
     plt.scatter(x_list, y_list, c="b")
 
-    #plt.plot([mid_bottom[0], top[0]], [mid_bottom[1], top[1]], color="cyan", linewidth=4)
+    if left_y_distance >= right_y_distance:
+        plt.plot([mid_bottom[0], mid_bottom[0]], [mid_bottom[1], left_top[1]], color="cyan", linewidth=4)
+    else:
+        plt.plot([mid_bottom[0], mid_bottom[0]], [mid_bottom[1], right_top[1]], color="cyan", linewidth=4)
 
     plt.text(24, 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
 

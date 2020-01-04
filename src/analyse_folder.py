@@ -1,6 +1,6 @@
 import os
 import numpy as np
-
+from tradition.src import chest_diagnosis as tra_chest_diagnosis
 from .utils import wrap_dicom_buffer, sort_files
 from .chest_diagnosis import diagnosis, degree_of_depression, analyse, draw
 from .contours_op import show_contours, show_points, find_boundary_point
@@ -73,6 +73,10 @@ def diagnosis_files(files, _return_files=False, _debug=False):
         f = wrap_dicom_buffer(f) if not isinstance(f, str) else f
         try:
             dic = analyse(f)
+            tra_dic = tra_chest_diagnosis.analyse(f)
+            dic.left_top = tra_dic.left_top
+            dic.right_top = tra_dic.right_top
+            dic.mid_bottom = tra_dic.mid_bottom
         except Exception as e:
             print(e)
             continue
