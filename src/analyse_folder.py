@@ -59,7 +59,8 @@ def diagnosis_files(files, _return_files=False, _debug=False):
 
     degrees = degrees[start_: end_]
     files = files[start_: end_]
-
+    degrees = degrees[6:]
+    files = files[6:]
     indexes = np.argsort(degrees)
 
     sorted_files = [files[i] for i in indexes]
