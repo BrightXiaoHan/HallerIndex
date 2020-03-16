@@ -9,26 +9,8 @@ def fusion(masks, original_images):
 
         size = origin_image.shape
 
-        image_size = cv2.resize(mask, (512, 512))
-
-        ret, binary = cv2.threshold(image_size, 180, 255, cv2.THRESH_BINARY)
-        # 找轮廓
-        img, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        # 图像宽和高
-        h, w = binary.shape
-        # 最大轮廓面积不能超过这个
-        min_cnt_area = h * w - 10000
-
-        max_area = 0
-        # 找出目标轮廓
-        for cnt in contours:
-            area = cv2.contourArea(cnt)
-            if area < min_cnt_area:
-                if area > max_area:
-                    max_area = area
-
-        if max_area < 30000:
-            return 0
+        # if max_area < 30000:
+        #     return 0
 
         # 将轮廓图放大至与原图相等
         image_resize = cv2.resize(mask, (size[1], size[0]))

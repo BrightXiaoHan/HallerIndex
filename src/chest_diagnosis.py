@@ -3,7 +3,7 @@ from src.utils import *
 from .dicom_process import *
 from easydict import EasyDict
 from unet import cnt
-
+from unet import cnt_min
 def degree_of_depression(dicom_file):
     """判断一张ct图像的凹陷程度
     
@@ -17,6 +17,12 @@ def degree_of_depression(dicom_file):
     # DicomDir等文件运行此段代码会报错，为不可用图像
     try:
         ds = pydicom.read_file(dicom_file)
+        # 去掉横切面以外的图
+        IOP = ds.ImageOrientationPatient
+        IOP_round = [round(x) for x in IOP]
+        if IOP_round != [1, 0, 0, 0, 1, 0]:
+            return 0
+
         img = cv2.convertScaleAbs(ds.pixel_array, alpha=(255.0/65535.0))
         ret, binary = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
         _, contours, _ = cv2.findContours(
@@ -50,7 +56,7 @@ def degree_of_depression(dicom_file):
     # 规则3 底部点与中心店y轴距离过近的
     if cy - mid_bottom[1] < 10:
         return 0
-    
+
     # 规则4 轮廓的宽大于高
     if bottom_most[1] - min(left_top[1], right_top[1]) > right_most[0] - left_most[0]:
         return 0
@@ -104,14 +110,16 @@ def segment(img):
 def diagnosis(dicom_file):
     return draw(analyse(dicom_file))
     
-def analyse(dicom_file):
+def analyse(dicom_file, _min):
     y = []
     xy = []
 
     dc = pydicom.dcmread(dicom_file)
     image = get_default_image(dc)
-    inner_contour = cnt([image])[0]
-
+    if _min == False:
+        inner_contour = cnt([image])[0]
+    else:
+        inner_contour = cnt_min([image])[0]
     # 找到左右胸轮廓的两个最低点，left_bottom是左侧，right_bottom是右侧
     left_chest_leftmost = find_boundary_point(inner_contour, position="left")
     right_chest_rightmost = find_boundary_point(inner_contour, position="right")
@@ -144,7 +152,7 @@ def analyse(dicom_file):
 
     y_max = max(y)
     y_max = y_max - 10
-    threshold_value = y_max - 50
+    threshold_value = y_max - 70
     while y_max > min(y):
         count = 0
         for item in y:
@@ -162,9 +170,45 @@ def analyse(dicom_file):
     
     cx = (left_chest_leftmost[0] + right_chest_rightmost[0])/2
     cy = (left_chest_leftmost[1] + right_chest_rightmost[1])/2
-    
+
+    r_yma = 0
+    r_list = [[], []]
+    for i in range(left_chest_leftmost[0], int(cx)):
+        count_list = []
+        for item in xy:
+            if i == item[0]:
+                count_list.append(item)
+            if len(count_list) == 2:
+                break
+        try:
+            y = abs(count_list[0][1] - count_list[1][1])
+        except:
+            continue
+        if y > r_yma:
+            r_yma = y
+            r_list[0] = count_list[0]
+            r_list[1] = count_list[1]
+
+    l_yma = 0
+    l_list = [[], []]
+    for i in range(int(cx+50), right_chest_rightmost[0]):
+        count_list = []
+        for item in xy:
+            if i == item[0]:
+                count_list.append(item)
+            if len(count_list) == 2:
+                break
+        try:
+            y = abs(count_list[0][1] - count_list[1][1])
+        except:
+            continue
+        if y > l_yma:
+            l_yma = y
+            l_list[0] = count_list[0]
+            l_list[1] = count_list[1]
+
     left_inner_contour = filter_contour_points(inner_contour, x_max=cx)
-    right_inner_contour = filter_contour_points(inner_contour, x_min=cx)
+    right_inner_contour = filter_contour_points(inner_contour, x_min=cx+50)
 
     left_top = find_boundary_point(left_inner_contour, position="top")
     right_top = find_boundary_point(right_inner_contour, position="top")
@@ -184,14 +228,20 @@ def analyse(dicom_file):
         "vertebra": vertebra,  # 胸肋骨（中间部分）
         "sternum": sternum,  # 脊椎骨
         "inner_contour": inner_contour,
-        "left_top": None,
-        "right_top": None,
+        "left_top": left_top,
+        "right_top": right_top,
+        "left_bottom": left_bottom,
+        "angle": angle,
+        "r_list": r_list,
+        "l_list": l_list,
+        "r_yma": r_yma,
+        "l_yma": l_yma,
         "mid_bottom": None  # 外轮廓中间凹陷点
     })
     
     return result_dict
 
-def draw(dic):
+def draw(dic, folder):
     """根据analyse函数提取的关键特征绘制辅助线并，计算Haller指数
     
     Args:
@@ -200,14 +250,52 @@ def draw(dic):
     Returns:
         EasyDict: "haller_index" Haller指数，"figure_image" 绘制辅助线之后的照片
     """
+    r_list = dic.r_list
+    l_list = dic.l_list
+    r_yma = dic.r_yma
+    l_yma = dic.l_yma
+    asymmetry_index = r_yma / l_yma
+
     left_top = dic.left_top
     right_top = dic.right_top
-    mid_bottom = dic.mid_bottom
+    # mid_bottom = dic.mid_bottom
+    #
+    # left_y_distance = mid_bottom[1] - left_top[1]
+    # right_y_distance = mid_bottom[1] - right_top[1]
+    # angle = dic.angle
+    # left_bottom = dic.left_bottom
 
-    left_y_distance = mid_bottom[1] - left_top[1]
-    right_y_distance = mid_bottom[1] - right_top[1]
+    bottom_sternum_point = dic.bottom_sternum_point
+    top_vertebra_point = dic.top_vertebra_point
+    right_chest_rightmost = dic.right_chest_rightmost
+    left_chest_leftmost = dic.left_chest_leftmost
+
+    ab1 = bottom_sternum_point[1] - left_top[1]
+    ab2 = bottom_sternum_point[1] - right_top[1]
+
+    b = bottom_sternum_point[1] - top_vertebra_point[1]
+    a = right_chest_rightmost[0] - left_chest_leftmost[0]
+
+    haller_index = a / b
+
+    # bottom_sternum_point = np.expand_dims(np.expand_dims(bottom_sternum_point, axis=0), axis=0)
+    # top_vertebra_point = np.expand_dims(np.expand_dims(top_vertebra_point, axis=0), axis=0)
+    # right_chest_rightmost = np.expand_dims(np.expand_dims(right_chest_rightmost, axis=0), axis=0)
+    # left_chest_leftmost = np.expand_dims(np.expand_dims(left_chest_leftmost, axis=0), axis=0)
+    #
+    # matrix = cv2.getRotationMatrix2D((left_bottom[0], left_bottom[1]), -angle, 1.0)
+    # bottom_sternum_point = rotate_contours(bottom_sternum_point, matrix)
+    # top_vertebra_point = rotate_contours(top_vertebra_point, matrix)
+    # right_chest_rightmost = rotate_contours(right_chest_rightmost, matrix)
+    # left_chest_leftmost = rotate_contours(left_chest_leftmost, matrix)
+    #
+    # bottom_sternum_point = np.squeeze(bottom_sternum_point)
+    # top_vertebra_point = np.squeeze(top_vertebra_point)
+    # right_chest_rightmost = np.squeeze(right_chest_rightmost)
+    # left_chest_leftmost = np.squeeze(left_chest_leftmost)
 
     inner_contour = dic.inner_contour
+    # inner_contour = rotate_contours(inner_contour, matrix)
     x_list = []
     y_list = []
     l = len(inner_contour)
@@ -215,15 +303,12 @@ def draw(dic):
         y_list.append(inner_contour[i][0][1])
         x_list.append(inner_contour[i][0][0])
 
-    b = dic.bottom_sternum_point[1] - dic.top_vertebra_point[1]
-    a = dic.right_chest_rightmost[0] - dic.left_chest_leftmost[0]
-
-    haller_index = a / b
-
     # show_contours(dic.img, dic.inner_contour)
     
     fig = plt.figure(figsize=(36, 36))
-    plt.imshow(dic.img, cmap=plt.cm.gray)
+    image = dic.img
+    # image = cv2.warpAffine(image, matrix, (image.shape[0], image.shape[1]))
+    plt.imshow(image, cmap=plt.cm.gray)
 
     # 画出拟合曲线和原始点集
     # 画胸廓拟合点集
@@ -232,19 +317,21 @@ def draw(dic):
     # plt.plot(out_contour[:, 0, 0], out_contour[:, 0, 1], color="black", linewidth=2)
 
     # 画左右连线
-    y = (dic.left_chest_leftmost[1] + dic.right_chest_rightmost[1]) / 2
-    xl = dic.left_chest_leftmost[0]
-    xr = dic.right_chest_rightmost[0]
+    y = (left_chest_leftmost[1] + right_chest_rightmost[1]) / 2
+    xl = left_chest_leftmost[0]
+    xr = right_chest_rightmost[0]
 
+    plt.plot([r_list[0][0], r_list[1][0]], [r_list[0][1], r_list[1][1]], color="magenta", linewidth=4)
+    plt.plot([l_list[0][0], l_list[1][0]], [l_list[0][1], l_list[1][1]], color="magenta", linewidth=4)
     plt.plot([xl, xr], [y, y], color="magenta", linewidth=4)
+    # plt.plot([left_top[0], right_top[0]], [left_top[1], right_top[1]], color="magenta", linewidth=4)
+    x = bottom_sternum_point[0]
+    yt = top_vertebra_point[1]
+    yb = bottom_sternum_point[1]
 
-    x = dic.bottom_sternum_point[0]
-    yt = dic.top_vertebra_point[1]
-    yb = dic.bottom_sternum_point[1]
-
-    xt = dic.top_vertebra_point[0]
-    plt.plot([xt+80, xt-80], [yb, yb], color="green", linewidth=4)
-    plt.plot([xt+80, xt-80], [yt, yt], color="green", linewidth=4)
+    xt = top_vertebra_point[0]
+    plt.plot([xt+100, xt-100], [yb, yb], color="green", linewidth=4)
+    plt.plot([xt+100, xt-100], [yt, yt], color="green", linewidth=4)
     # 画e 
     plt.plot([x, x], [yt, yb], color="cyan", linewidth=4)
     # 画内轮廓
@@ -255,13 +342,26 @@ def draw(dic):
     # else:
     #     plt.plot([mid_bottom[0], mid_bottom[0]], [mid_bottom[1], right_top[1]], color="cyan", linewidth=4)
 
-    plt.text(24, 24, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=50, color="white")
+    plt.text(12, 12, "Width:%d, Hight:%d, Haller: %f." % (a, b, haller_index), fontsize=20, color="white")
+
+    if ab1 > ab2:
+        correction_index = (ab1 - b) / ab1
+        plt.text(12, 30, "ab:%d, cd:%d, correction_index: %f%%." % (ab1, b, correction_index * 100), fontsize=20, color="white")
+        plt.plot([left_top[0], left_top[0]], [left_top[1], yb], color="cyan", linewidth=4)
+    else:
+        correction_index = (ab2 - b) / ab2
+        plt.text(12, 30, "ab:%d, cd:%d, correction_index: %f%%." % (ab2, b, correction_index * 100), fontsize=20, color="white")
+        plt.plot([right_top[0], right_top[0]], [right_top[1], yb], color="cyan", linewidth=4)
+
+    plt.text(12, 48, "R:%d, L:%d, asymmetry_index: %f." % (r_yma, l_yma, asymmetry_index), fontsize=20, color="white")
+
+    plt.text(12, 70, "ID: {}.".format(folder), fontsize=20, color="white")
 
     figure_image = fig2img(fig)
 
     plt.close(fig)
 
-    return haller_index, figure_image, a
+    return haller_index, figure_image, a, correction_index, asymmetry_index
 
 
 def degree_get(image):

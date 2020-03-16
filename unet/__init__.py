@@ -1,3 +1,2 @@
 from .test import cnt
-
-__all__ = ["cnt"]
+from .test_min import cnt_min

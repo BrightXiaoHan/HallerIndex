@@ -15,7 +15,7 @@ import shutil
 import pylab
 import numpy as np
 from src import get_default_image
-from src import diagnosis_folder
+from src import diagnosis_folder_v2
 from tqdm import tqdm
 from tradition.scripts.tra import tradition_func
 
@@ -49,7 +49,7 @@ for folder in tqdm(list(os.walk(args.src_dir))[0][1]):
 
     try:
         figures, indexes, fnames, a1, correction_index, asymmetry_index = \
-            diagnosis_folder(os.path.join(args.src_dir, folder), _return_files=True, _debug=True, _min=False)
+            diagnosis_folder_v2(os.path.join(args.src_dir, folder), _return_files=True, _debug=True)
     except Exception as e:
         error_list.append(folder)
         continue
@@ -70,19 +70,4 @@ for i in error_list:
     print("%s error." % i)
 
 print('error num:', len(error_list))
-error_list_2 = []
-for folder in error_list:
-    try:
-        figures, indexes, fnames, a1, correction_index, asymmetry_index = \
-            diagnosis_folder(os.path.join(args.src_dir, folder), _return_files=True, _debug=True, _min=True)
-    except Exception as e:
-        error_list_2.append(folder)
-        continue
 
-    for i, (figure, name) in enumerate(zip(figures, fnames)):
-        figure.save(os.path.join(args.dest_dir, folder, "{}_{}.png".format(folder, os.path.basename(name))))
-
-for i in error_list_2:
-    print("%s error." % i)
-
-print('error num:', len(error_list_2))
